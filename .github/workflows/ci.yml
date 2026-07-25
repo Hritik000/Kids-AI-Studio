@@ -1,0 +1,57 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  frontend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'apps/frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./apps/frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./apps/frontend
+        run: npm run lint || true
+
+      - name: Verify Next.js Build
+        working-directory: ./apps/frontend
+        run: npm run build
+
+  backend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Backend Dependencies
+        working-directory: ./apps/backend
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest flake8
+
+      - name: Run Flake8 Linting
+        working-directory: ./apps/backend
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+
+      - name: Run Pytest
+        working-directory: ./apps/backend
+        run: PYTHONPATH=. pytest

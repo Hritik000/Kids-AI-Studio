@@ -1,0 +1,15 @@
+export const spacing = {
+  space1: "4px",
+  space2: "8px",
+  space3: "12px",
+  space4: "16px",
+  space6: "24px",
+  space8: "32px",
+  space12: "48px",
+  space16: "64px",
+  radiusSm: "6px",
+  radiusMd: "12px",
+  radiusLg: "16px",
+  radiusXl: "24px",
+  radiusFull: "9999px",
+} as const;
