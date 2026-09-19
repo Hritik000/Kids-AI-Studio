@@ -34,10 +34,10 @@ class DirectorAgentService:
         for attempt in range(1, max_retries + 1):
             try:
                 raw_plan = await self.llm.generate_json(director_prompt, system_prompt)
-                
+
                 # Override project_id if needed
                 raw_plan["project_id"] = project_id
-                
+
                 # Validate Plan
                 warnings = ValidationService.validate_production_plan(raw_plan)
                 raw_plan["_warnings"] = warnings

@@ -5,13 +5,10 @@ from app.models.storyboard import Storyboard
 from app.schemas.auth import UserProfile
 from app.core.security import get_current_user
 from app.api.v1.projects import projects_db
-from app.api.v1.ai import plans_db, stories_db
+from app.core.db import plans_db, stories_db, storyboards_db
 from app.services.storyboard import StoryboardAgentService
 
 router = APIRouter()
-
-# In-memory storage for Phase 7 Storyboards
-storyboards_db: Dict[str, Dict[str, Any]] = {}
 
 storyboard_service = StoryboardAgentService()
 
@@ -28,7 +25,7 @@ async def generate_storyboard(
 
     project = projects_db[project_id]
     story_script = stories_db.get(project_id)
-    
+
     if not story_script:
         return APIResponse(
             success=False,
@@ -43,7 +40,7 @@ async def generate_storyboard(
             story_script=story_script,
             production_plan=production_plan
         )
-        
+
         storyboards_db[project_id] = sb
         project.status = ProjectStatus.STORYBOARD_READY
         projects_db[project_id] = project
@@ -120,7 +117,7 @@ async def update_scene_metadata(
     sb = storyboards_db[project_id]
     scenes = sb.get("scenes", [])
     target = next((s for s in scenes if s.get("scene_number") == scene_number), None)
-    
+
     if not target:
         return APIResponse(
             success=False,

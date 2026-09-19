@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from app.models.project import APIResponse, APIError
 from app.schemas.auth import (
     RegisterRequest,
@@ -10,12 +10,18 @@ from app.schemas.auth import (
     UserProfile,
     UserRole
 )
-from app.core.security import get_current_user, mock_users_db
+from app.core.security import get_current_user, mock_users_db, auth_limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 router = APIRouter()
 
+# Rate limiting exception handler will be added in main.py
+
 @router.post("/register", response_model=APIResponse[TokenResponse])
-async def register(payload: RegisterRequest):
+@auth_limiter.limit("5 per minute")
+async def register(request: Request, payload: RegisterRequest):
     if payload.password != payload.confirm_password:
         return APIResponse(
             success=False,
@@ -55,7 +61,8 @@ async def register(payload: RegisterRequest):
     )
 
 @router.post("/login", response_model=APIResponse[TokenResponse])
-async def login(payload: LoginRequest):
+@auth_limiter.limit("5 per minute")
+async def login(request: Request, payload: LoginRequest):
     # Lookup email in mock store
     target_user = None
     for u in mock_users_db.values():

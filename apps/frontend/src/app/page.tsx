@@ -48,7 +48,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-gray-100 flex flex-col font-sans selection:bg-purple-500 selection:text-white">
+    <div className="min-h-screen bg-background-primary text-foreground-primary flex flex-col font-sans selection:bg-primary/20 selection:text-primary-foreground">
       {/* Top Glass Navbar */}
       <Navbar />
 
@@ -56,24 +56,24 @@ export default function Home() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-12 space-y-16">
         {/* Intro Title */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold">
-            <Zap className="w-4 h-4 text-purple-400" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary/300 text-xs font-semibold">
+            <Zap className="w-4 h-4 text-primary-400" />
             <span>Autonomous YouTube Kids Video Creation SaaS v2.0</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground-primary leading-tight">
             Turn Any Prompt into a <br />
-            <span className="gradient-text">Complete YouTube Kids Video</span>
+            <span className="gradient-text-hero">Complete YouTube Kids Video</span>
           </h1>
 
-          <p className="text-gray-400 text-lg">
+          <p className="text-foreground-secondary text-lg">
             Director Agent, Script, Storyboard, Visuals, Narration, and FFmpeg Render — fully automated.
           </p>
         </div>
 
         {/* Error Notification */}
         {errorMsg && (
-          <div className="max-w-xl mx-auto p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-3">
+          <div className="max-w-xl mx-auto p-4 rounded-xl bg-error/10 border border-error/30 text-error-300 text-sm flex items-center gap-3">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -91,7 +91,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-8 px-6 text-center text-xs text-gray-500">
+      <footer className="border-t border-white/10 py-8 px-6 text-center text-xs text-foreground-muted">
         <p>KidsAI Studio © 2026 — Built with Next.js 15, FastAPI, Supabase, Cloudflare R2 & AI Adapters</p>
       </footer>
     </div>

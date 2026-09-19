@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Any, List
 
 class MusicValidationError(Exception):
@@ -13,7 +14,8 @@ class MusicValidationService:
             if key not in mix_data or not mix_data[key]:
                 raise MusicValidationError(f"Generated mixed audio track missing field: '{key}'")
 
-        if not mix_data["storage_url"].startswith("http"):
+        url_or_path = str(mix_data["storage_url"])
+        if not (url_or_path.startswith("http://") or url_or_path.startswith("https://") or url_or_path.startswith("file://") or url_or_path.startswith("/tmp") or os.path.isabs(url_or_path)):
             raise MusicValidationError(f"Invalid mixed audio storage URL format: '{mix_data['storage_url']}'")
 
         duration = mix_data.get("duration_seconds", 0)

@@ -16,7 +16,7 @@ class LipSyncEngineService:
             for idx, word in enumerate(words):
                 shape = mouth_shapes[idx % (len(mouth_shapes) - 1)]
                 dur = round(0.12 + (len(word) * 0.02), 2)
-                
+
                 visemes.append(VisemeMarker(
                     timestamp_seconds=round(current_time, 2),
                     mouth_shape=shape,

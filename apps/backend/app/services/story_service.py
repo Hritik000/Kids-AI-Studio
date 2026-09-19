@@ -1,7 +1,8 @@
 import os
 from typing import Dict, Any
 from app.core.adapters.llm_adapter import llm_adapter
-from app.models.project import StoryboardResponse, Scene
+from app.models.project import Scene
+from app.models.storyboard import StoryboardResponse
 
 class StoryService:
     def _load_prompt_template(self) -> str:

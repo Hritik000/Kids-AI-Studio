@@ -64,3 +64,10 @@ class Storyboard(BaseModel):
     global_color_palette: List[str] = []
     scenes: List[StoryboardScene]
     approved: bool = False
+
+
+class StoryboardResponse(BaseModel):
+    title: str
+    description: str
+    tags: List[str]
+    scenes: List[Scene]

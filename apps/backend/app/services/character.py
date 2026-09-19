@@ -38,7 +38,6 @@ class CharacterEngineService:
                 "visual_style": visual_style
             })
 
-            # Mock placeholder reference image URL
             ref_image_url = f"https://placehold.co/512x512/1A1D27/FFFFFF/png?text=Character+{name}"
 
             profile = CharacterProfile(
@@ -57,6 +56,18 @@ class CharacterEngineService:
 
         characters_db[project_id] = profiles
         return profiles
+
+    @staticmethod
+    def extract_and_generate_profiles(
+        project_id: str,
+        story_script: Dict[str, Any],
+        video_style: str = "3D Pixar Render"
+    ) -> List[CharacterProfile]:
+        return CharacterEngineService.generate_character_profiles(
+            project_id=project_id,
+            story_script=story_script,
+            production_plan={"visual_style": video_style}
+        )
 
     @staticmethod
     def get_project_characters(project_id: str) -> List[CharacterProfile]:

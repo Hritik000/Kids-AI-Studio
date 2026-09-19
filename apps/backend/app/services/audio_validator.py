@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Any, List
 
 class AudioValidationError(Exception):
@@ -13,7 +14,8 @@ class AudioValidationService:
             if key not in audio_data or not audio_data[key]:
                 raise AudioValidationError(f"Generated audio record missing field: '{key}'")
 
-        if not audio_data["storage_url"].startswith("http"):
+        url_or_path = str(audio_data["storage_url"])
+        if not (url_or_path.startswith("http://") or url_or_path.startswith("https://") or url_or_path.startswith("file://") or url_or_path.startswith("/tmp") or os.path.isabs(url_or_path)):
             raise AudioValidationError(f"Invalid audio storage URL format: '{audio_data['storage_url']}'")
 
         duration = audio_data.get("duration_seconds", 0)

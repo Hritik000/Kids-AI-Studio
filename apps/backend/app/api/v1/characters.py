@@ -50,6 +50,7 @@ async def get_characters(
         )
 
     profiles = CharacterEngineService.get_project_characters(project_id)
+
     return APIResponse(success=True, data=profiles)
 
 @router.put("/projects/{project_id}/characters/{char_id}", response_model=APIResponse[CharacterProfile])

@@ -1,5 +1,7 @@
 from typing import Dict, Any, List
 
+import os
+
 class AnimationValidationError(Exception):
     pass
 
@@ -13,7 +15,8 @@ class AnimationValidationService:
             if key not in clip_data or not clip_data[key]:
                 raise AnimationValidationError(f"Generated animation record missing field: '{key}'")
 
-        if not clip_data["storage_url"].startswith("http"):
+        url_or_path = str(clip_data["storage_url"])
+        if not (url_or_path.startswith("http://") or url_or_path.startswith("https://") or url_or_path.startswith("file://") or url_or_path.startswith("/tmp") or os.path.isabs(url_or_path)):
             raise AnimationValidationError(f"Invalid video storage URL format: '{clip_data['storage_url']}'")
 
         duration = clip_data.get("duration_seconds", 0)

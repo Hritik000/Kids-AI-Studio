@@ -71,3 +71,9 @@ pnpm-debug.log*
 tmp/
 temp/
 scratch/
+
+# Environment secrets
+.env
+.env.local
+.env.*
+!.env.example

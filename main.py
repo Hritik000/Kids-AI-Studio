@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
-from app.api.v1.projects import router as projects_router
-from app.api.v1.auth import router as auth_router
-from app.api.v1.users import router as users_router
-from app.api.v1.ai import router as ai_router
-from app.api.v1.storyboard import router as storyboard_router
-from app.api.v1.characters import router as characters_router
-from app.api.v1.images import router as images_router
+from apps.backend.app.core.config import settings
+from apps.backend.app.api.v1.projects import router as projects_router
+from apps.backend.app.api.v1.auth import router as auth_router
+from apps.backend.app.api.v1.users import router as users_router
+from apps.backend.app.api.v1.ai import router as ai_router
+from apps.backend.app.api.v1.storyboard import router as storyboard_router
+from apps.backend.app.api.v1.characters import router as characters_router
+from apps.backend.app.api.v1.images import router as images_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

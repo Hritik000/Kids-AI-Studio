@@ -1,12 +1,205 @@
+"""
+Production-Correct, Provider-Agnostic LLM Layer.
+Provides clean LLMProvider abstraction for OpenAI, Kimi Moonshot, and Mock providers.
+Features robust JSON recovery, transient error retries, and secret masking.
+"""
+
 import os
 import json
 import re
+import asyncio
+import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
+import httpx
+from app.core.config import settings
+
+logger = logging.getLogger("llm_provider")
 
 PROMPTS_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../../../packages/prompts")
 )
+
+
+class LLMError(Exception):
+    """Base exception for all LLM errors."""
+    pass
+
+
+class LLMConfigurationError(LLMError):
+    """Raised when LLM configuration or API key is missing in real mode."""
+    pass
+
+
+class LLMAuthError(LLMError):
+    """Raised when authentication fails (HTTP 401/403)."""
+    pass
+
+
+class LLMRateLimitError(LLMError):
+    """Raised when rate limit is hit (HTTP 429)."""
+    pass
+
+
+class LLMTimeoutError(LLMError):
+    """Raised when LLM request times out."""
+    pass
+
+
+class LLMAPIError(LLMError):
+    """Raised when generic HTTP or provider API error occurs."""
+    pass
+
+
+class LLMJSONParseError(LLMError):
+    """Raised when LLM response text cannot be parsed as JSON."""
+    pass
+
+
+def mask_secret(text: str, secret: Optional[str] = None) -> str:
+    """Masks secret API keys in log messages and error tracebacks."""
+    if not text:
+        return text
+    secrets_to_mask = [secret] if secret else []
+    for key_env in ["GEMINI_API_KEY", "OPENAI_API_KEY", "KIMI_API_KEY", "STORY_API_KEY"]:
+        val = os.getenv(key_env) or getattr(settings, key_env, "")
+        if val:
+            secrets_to_mask.append(val)
+
+    masked_text = str(text)
+    for s in secrets_to_mask:
+        if s and len(s) > 4:
+            masked = f"{s[:3]}...{s[-4:]}"
+            masked_text = masked_text.replace(s, masked)
+    return masked_text
+
+
+def extract_json_payload(raw_text: str) -> Dict[str, Any]:
+    """
+    Extracts and parses JSON object from LLM response text.
+    Handles markdown code fences (```json ... ```) and surrounding commentary.
+    Also handles truncated JSON by attempting to close open structures.
+    """
+    if not raw_text or not raw_text.strip():
+        raise LLMJSONParseError("LLM response content is empty.")
+
+    cleaned = raw_text.strip()
+
+    # Strip markdown code blocks if present
+    if "```" in cleaned:
+        fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned, re.IGNORECASE)
+        if fence_match:
+            cleaned = fence_match.group(1).strip()
+
+    # Try direct parse
+    try:
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data
+    except json.JSONDecodeError:
+        # If direct parse fails, continue to try extraction methods
+        pass
+
+    # Remove any potential BOM or special characters that might interfere
+    cleaned = cleaned.encode('utf-8', 'ignore').decode('utf-8')
+
+    # Extract block between first { and last }
+    first_brace = cleaned.find("{")
+    last_brace = cleaned.rfind("}")
+
+    # If we have both braces, try the standard extraction
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        json_candidate = cleaned[first_brace:last_brace + 1]
+        try:
+            data = json.loads(json_candidate)
+            if isinstance(data, dict):
+                return data
+        except json.JSONDecodeError as e:
+            # If standard extraction fails, log and continue to try fixes
+            pass
+
+    # If we have an opening brace but no closing brace, try to add one
+    if first_brace != -1 and last_brace == -1:
+        # Try to extract from the first brace to the end and see if we can make it valid
+        json_candidate = cleaned[first_brace:]
+
+        # Try to parse as-is first
+        try:
+            data = json.loads(json_candidate)
+            if isinstance(data, dict):
+                return data
+        except json.JSONDecodeError:
+            pass
+
+        # If that fails, try adding a closing brace
+        json_candidate_with_close = json_candidate + "}"
+        try:
+            data = json.loads(json_candidate_with_close)
+            if isinstance(data, dict):
+                return data
+        except json.JSONDecodeError:
+            pass
+
+    # Last resort: try to find any valid JSON object by scanning from the start
+    # Look for the longest valid JSON substring starting from the first brace
+    if first_brace != -1:
+        # Try progressively shorter substrings from the end
+        for i in range(len(cleaned), first_brace, -1):
+            json_candidate = cleaned[first_brace:i]
+            # Try as-is
+            try:
+                data = json.loads(json_candidate)
+                if isinstance(data, dict):
+                    return data
+            except json.JSONDecodeError:
+                # Try removing trailing comma if present
+                if json_candidate.endswith(','):
+                    json_candidate_no_comma = json_candidate[:-1]
+                    try:
+                        data = json.loads(json_candidate_no_comma)
+                        if isinstance(data, dict):
+                            return data
+                    except json.JSONDecodeError:
+                        pass
+                continue
+
+        # Try progressively longer substrings from the start (adding closing braces)
+        for i in range(first_brace + 1, len(cleaned) + 1):
+            json_candidate = cleaned[first_brace:i]
+            # Try as-is
+            try:
+                data = json.loads(json_candidate)
+                if isinstance(data, dict):
+                    return data
+            except json.JSONDecodeError:
+                # Try removing trailing comma if present
+                if json_candidate.endswith(','):
+                    json_candidate_no_comma = json_candidate[:-1]
+                    try:
+                        data = json.loads(json_candidate_no_comma)
+                        if isinstance(data, dict):
+                            return data
+                    except json.JSONDecodeError:
+                        pass
+                # Try with closing braces (try 1 to 3 closing braces)
+                for num_braces in range(1, 4):
+                    try:
+                        data = json.loads(json_candidate + "}" * num_braces)
+                        if isinstance(data, dict):
+                            return data
+                    except json.JSONDecodeError:
+                        # Try removing trailing comma if present
+                        if (json_candidate + "}" * num_braces).endswith(','):
+                            json_candidate_no_comma = json_candidate + "}" * (num_braces - 1)
+                            try:
+                                data = json.loads(json_candidate_no_comma)
+                                if isinstance(data, dict):
+                                    return data
+                            except json.JSONDecodeError:
+                                continue
+
+    raise LLMJSONParseError(f"No valid JSON object found in response: {cleaned[:100]}...")
+
 
 class PromptLoader:
     @staticmethod
@@ -14,7 +207,7 @@ class PromptLoader:
         filepath = os.path.join(PROMPTS_DIR, filename)
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Prompt file not found at {filepath}")
-        
+
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -25,18 +218,153 @@ class PromptLoader:
 
         return content
 
+
 class LLMProvider(ABC):
     @abstractmethod
     async def generate_json(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
+        """Generates structured JSON from the LLM provider."""
         pass
 
+    @abstractmethod
+    async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Generates raw text from the LLM provider."""
+        pass
+
+
+class OpenAILLMProvider(LLMProvider):
+    """
+    Production-grade LLM provider supporting OpenAI-compatible REST APIs
+    (OpenAI, Moonshot Kimi, DeepSeek, Azure, etc.).
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_retries: int = 3,
+        timeout_seconds: float = 60.0
+    ):
+        self.api_key = api_key or getattr(settings, "OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY") or os.getenv("STORY_API_KEY") or ""
+        self.model = model or getattr(settings, "OPENAI_MODEL", "gpt-4o-mini") or "gpt-4o-mini"
+        raw_base_url = base_url or getattr(settings, "OPENAI_BASE_URL", "https://api.openai.com/v1") or "https://api.openai.com/v1"
+        self.base_url = raw_base_url.rstrip("/")
+        self.max_retries = max_retries
+        self.timeout_seconds = timeout_seconds
+
+    async def _call_completion_api(self, prompt: str, system_prompt: Optional[str] = None, json_mode: bool = True) -> str:
+        if not self.api_key:
+            raise LLMConfigurationError(
+                "LLM API key is missing. Set OPENAI_API_KEY or set LLM_PROVIDER=mock for development/testing."
+            )
+
+        endpoint = f"{self.base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        body: Dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.7
+        }
+        if json_mode:
+            body["response_format"] = {"type": "json_object"}
+
+        last_exception: Optional[Exception] = None
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                logger.info(
+                    "Executing LLM request (Attempt %d/%d) to model %s via %s",
+                    attempt, self.max_retries, self.model, self.base_url
+                )
+                async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                    resp = await client.post(endpoint, headers=headers, json=body)
+
+                    if resp.status_code in (401, 403):
+                        err_text = mask_secret(resp.text, self.api_key)
+                        raise LLMAuthError(f"LLM Authentication failed (HTTP {resp.status_code}): {err_text}")
+
+                    if resp.status_code == 429:
+                        err_text = mask_secret(resp.text, self.api_key)
+                        raise LLMRateLimitError(f"LLM Rate limit exceeded (HTTP 429): {err_text}")
+
+                    if resp.status_code >= 500:
+                        err_text = mask_secret(resp.text, self.api_key)
+                        raise LLMAPIError(f"LLM Server Error (HTTP {resp.status_code}): {err_text}")
+
+                    resp.raise_for_status()
+                    data = resp.json()
+
+                    if "choices" not in data or not data["choices"]:
+                        raise LLMAPIError("LLM response missing 'choices' field.")
+
+                    content = data["choices"][0]["message"]["content"]
+                    return content
+
+            except (LLMAuthError, LLMConfigurationError):
+                # Deterministic auth/config errors should NOT be retried
+                raise
+
+            except LLMRateLimitError as e:
+                last_exception = e
+                if attempt < self.max_retries:
+                    delay = 1.0 * (2 ** (attempt - 1))
+                    logger.warning("Rate limited (HTTP 429). Retrying in %.1fs...", delay)
+                    await asyncio.sleep(delay)
+
+            except LLMAPIError as e:
+                last_exception = e
+                if attempt < self.max_retries:
+                    delay = 1.0 * (2 ** (attempt - 1))
+                    logger.warning("LLM API Error: %s. Retrying in %.1fs...", mask_secret(str(e), self.api_key), delay)
+                    await asyncio.sleep(delay)
+
+            except (httpx.TimeoutException, asyncio.TimeoutError) as e:
+                last_exception = LLMTimeoutError(f"LLM request timed out after {self.timeout_seconds}s")
+                if attempt < self.max_retries:
+                    delay = 1.0 * (2 ** (attempt - 1))
+                    logger.warning("LLM request timed out. Retrying in %.1fs...", delay)
+                    await asyncio.sleep(delay)
+
+            except Exception as e:
+                masked_err = mask_secret(str(e), self.api_key)
+                last_exception = LLMAPIError(f"LLM request failed: {masked_err}")
+                if attempt < self.max_retries:
+                    delay = 1.0 * (2 ** (attempt - 1))
+                    await asyncio.sleep(delay)
+
+        raise last_exception or LLMAPIError("LLM request failed after retries.")
+
+    async def generate_json(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
+        content = await self._call_completion_api(prompt, system_prompt=system_prompt, json_mode=True)
+        return extract_json_payload(content)
+
+    async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        return await self._call_completion_api(prompt, system_prompt=system_prompt, json_mode=False)
+
+
 class MockLLMProvider(LLMProvider):
+    """
+    Deterministic Mock LLM Provider for automated unit tests and keyless local development.
+    """
+
+    async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        return "Mock LLM text output for prompt."
+
     async def generate_json(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
         # 1. Director Agent Production Plan Mock
         if "Director Agent Master Protocol" in prompt or "production_plan" in prompt.lower() or "Educational Objective" in prompt:
             topic_match = re.search(r"Topic:\s*(.*)", prompt)
             topic = topic_match.group(1).strip() if topic_match else "Dinosaurs Learn Colors"
-            
+
             age_match = re.search(r"Target Age Group:\s*(.*)", prompt)
             age_group = age_match.group(1).strip() if age_match else "3-5"
 
@@ -383,45 +711,162 @@ class MockLLMProvider(LLMProvider):
                 ]
             }
 
-class KimiLLMProvider(LLMProvider):
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("KIMI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+class MLXLLMProvider(LLMProvider):
+    """Local MLX-LM provider for Phi-3-mini on Apple Silicon"""
+
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        max_retries: int = 3,
+        timeout_seconds: float = 120.0
+    ):
+        self.model = model or getattr(settings, "LOCAL_MLX_MODEL_NAME", "phi-3-mini") or "phi-3-mini"
+        self.max_retries = max_retries
+        self.timeout_seconds = timeout_seconds
+        # mlx-lm handles model loading internally, we don't need to store the model/tokenizer here
+        # They will be loaded on first use via mlx_lm.load()
+
+    async def _call_mlx_api(self, prompt: str, system_prompt: Optional[str] = None, json_mode: bool = True) -> str:
+        from mlx_lm import load, generate
+        from mlx_lm.sample_utils import make_sampler
+
+        # Determine if we're using Phi-3-mini instruct model (most common)
+        model_name = self.model
+
+        last_exception: Optional[Exception] = None
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                logger.info(
+                    "Executing MLX-LM request (Attempt %d/%d) for model %s",
+                    attempt, self.max_retries, model_name
+                )
+
+                # Load model and tokenizer (mlx-lm caches these)
+                model, tokenizer = load(f"mlx-community/{model_name}-4bit")
+
+                # Format prompt using Phi-3 chat format
+                # Phi-3 uses <|system|>, <|user|>, <|assistant|> tokens
+                formatted_prompt = ""
+                if system_prompt:
+                    formatted_prompt += f"<|system|>\n{system_prompt}\n"
+                formatted_prompt += f"<|user|>\n{prompt}\n<|assistant|>\n"
+
+                logger.debug(f"Formatted prompt being sent to model (first 200 chars): {formatted_prompt[:200]}")
+                logger.debug(f"System prompt: {system_prompt[:100] if system_prompt else None}")
+                logger.debug(f"User prompt: {prompt[:100]}")
+
+                temp = 0.0 if json_mode else 0.7
+                sampler = make_sampler(temp=temp)
+                response = generate(
+                    model,
+                    tokenizer,
+                    prompt=formatted_prompt,
+                    max_tokens=500 if json_mode else 200,
+                    sampler=sampler,
+                )
+
+                logger.debug(f"Raw response from model (first 200 chars): {response[:200]}")
+                return response
+
+            except Exception as e:
+                masked_err = str(e)
+                last_exception = Exception(f"MLX-LM request failed: {masked_err}")
+                if attempt < self.max_retries:
+                    delay = 1.0 * (2 ** (attempt - 1))
+                    logger.warning("MLX-LM Error: %s. Retrying in %.1fs...", masked_err, delay)
+                    await asyncio.sleep(delay)
+
+        raise last_exception or Exception("MLX-LM request failed after retries.")
 
     async def generate_json(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
-        if not self.api_key:
-            return await MockLLMProvider().generate_json(prompt, system_prompt)
+        content = await self._call_mlx_api(prompt, system_prompt=system_prompt, json_mode=True)
+        logger.debug(f"Raw LLM response for JSON generation: {content}")
+        return extract_json_payload(content)
 
-        try:
-            import httpx
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            body = {
-                "model": "moonshot-v1-8k",
-                "messages": [
-                    {"role": "system", "content": system_prompt or "You are a helpful assistant that returns valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.7
-            }
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                resp = await client.post("https://api.moonshot.cn/v1/chat/completions", headers=headers, json=body)
-                resp.raise_for_status()
-                data = resp.json()
-                content = data["choices"][0]["message"]["content"]
-                return json.loads(content)
-        except Exception as e:
-            print(f"Kimi LLM API error, falling back to mock provider: {e}")
-            return await MockLLMProvider().generate_json(prompt, system_prompt)
+    async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        content = await self._call_mlx_api(prompt, system_prompt=system_prompt, json_mode=False)
+        logger.debug(f"Raw LLM response for text generation: {content}")
+        return content
 
-def get_llm_provider(provider_type: str = "auto") -> LLMProvider:
-    if provider_type == "mock":
+
+def get_llm_provider(provider_type: Optional[str] = None) -> LLMProvider:
+    """
+    Factory function to retrieve configured LLMProvider instance.
+    Explicit provider modes:
+    - 'mock': MockLLMProvider
+    - 'gemini': OpenAILLMProvider configured for Google Gemini API via OpenAI-compatible endpoint
+    - 'openai': OpenAILLMProvider (uses OPENAI_API_KEY)
+    - 'kimi': OpenAILLMProvider configured for Moonshot Kimi API
+    - 'local_mlx': MLXLLMProvider (local Phi-3-mini via MLX-LM, zero cost)
+    - 'auto' / None: Auto-detects key in order: Gemini -> OpenAI -> Kimi -> Local MLX -> Mock.
+    """
+    mode = (provider_type or getattr(settings, "LLM_PROVIDER", "auto") or os.getenv("LLM_PROVIDER") or "auto").lower()
+
+    if mode == "mock":
         return MockLLMProvider()
-    elif provider_type == "kimi":
-        return KimiLLMProvider()
+
+    if mode == "gemini":
+        gemini_key = getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY") or ""
+        gemini_model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash") or os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+        gemini_base = getattr(settings, "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai") or "https://generativelanguage.googleapis.com/v1beta/openai"
+        return OpenAILLMProvider(
+            api_key=gemini_key,
+            base_url=gemini_base,
+            model=gemini_model
+        )
+
+    if mode == "openai":
+        openai_key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY") or os.getenv("STORY_API_KEY") or ""
+        openai_model = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini") or os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
+        openai_base = getattr(settings, "OPENAI_BASE_URL", "https://api.openai.com/v1") or "https://api.openai.com/v1"
+        return OpenAILLMProvider(
+            api_key=openai_key,
+            base_url=openai_base,
+            model=openai_model
+        )
+
+    if mode == "kimi":
+        kimi_key = getattr(settings, "KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY") or ""
+        return OpenAILLMProvider(
+            api_key=kimi_key,
+            base_url="https://api.moonshot.cn/v1",
+            model="moonshot-v1-8k"
+        )
+
+    if mode == "local_mlx":
+        return MLXLLMProvider()
+
+    # Auto mode: check keys in order: Gemini -> OpenAI -> Kimi -> Local MLX -> Mock
+    gemini_key = getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY")
+    openai_key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY") or os.getenv("STORY_API_KEY")
+    kimi_key = getattr(settings, "KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY")
+    local_mlx_model = getattr(settings, "LOCAL_MLX_MODEL_NAME", "") or os.getenv("LOCAL_MLX_MODEL_NAME")
+
+    if gemini_key:
+        gemini_model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash") or os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+        gemini_base = getattr(settings, "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai") or "https://generativelanguage.googleapis.com/v1beta/openai"
+        return OpenAILLMProvider(
+            api_key=gemini_key,
+            base_url=gemini_base,
+            model=gemini_model
+        )
+    elif openai_key:
+        openai_model = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini") or os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
+        openai_base = getattr(settings, "OPENAI_BASE_URL", "https://api.openai.com/v1") or "https://api.openai.com/v1"
+        return OpenAILLMProvider(
+            api_key=openai_key,
+            base_url=openai_base,
+            model=openai_model
+        )
+    elif kimi_key:
+        return OpenAILLMProvider(
+            api_key=kimi_key,
+            base_url="https://api.moonshot.cn/v1",
+            model="moonshot-v1-8k"
+        )
+    elif local_mlx_model:  # If local MLX model is configured, use it
+        return MLXLLMProvider()
     else:
-        if os.getenv("KIMI_API_KEY") or os.getenv("OPENAI_API_KEY"):
-            return KimiLLMProvider()
         return MockLLMProvider()
