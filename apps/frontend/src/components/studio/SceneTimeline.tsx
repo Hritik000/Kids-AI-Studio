@@ -3,6 +3,7 @@
 import React from 'react';
 import { Project, Scene, ProjectStatus } from '@/lib/api';
 import { Sparkles, Film, Image as ImageIcon, Volume2, CheckCircle2, Clock, PlayCircle, Activity } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface SceneTimelineProps {
   project: Project;

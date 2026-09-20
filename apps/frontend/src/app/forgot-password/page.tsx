@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { forgotPasswordApi } from '@/lib/api';
 import { Sparkles, ArrowLeft, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -11,74 +13,101 @@ export default function ForgotPasswordPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Validation functions
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
 
-    setIsSubmitting(true);
+    // Reset messages
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    // Validate email
+    if (!email) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const msg = await forgotPasswordApi(email);
       setSuccessMsg(msg);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Password reset request failed.');
+      // Handle specific error messages from API
+      if (err.response?.data?.message) {
+        setErrorMsg(err.response.data.message);
+      } else if (err.message) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg('Password reset request failed. Please check your email and try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#090a0f] flex items-center justify-center p-6 selection:bg-purple-500 selection:text-white">
+    <div className="min-h-screen bg-background-primary flex items-center justify-center p-6">
       <div className="w-full max-w-md space-y-8">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold text-white tracking-tight">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg">
-              <Sparkles className="w-4 h-4" />
+          <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold text-foreground-primary tracking-tight">
+            <div className="w-8 h-8 rounded-xl gradient-button flex items-center justify-center shadow-lg">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span>KidsAI Studio</span>
+            <span>KidsAI <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Studio</span></span>
           </Link>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Forgot Password</h1>
-          <p className="text-sm text-gray-400">Enter your email to receive reset instructions</p>
+          <h1 className="text-2xl font-bold text-foreground-primary tracking-tight">Forgot Password</h1>
+          <p className="text-sm text-foreground-muted">Enter your email to receive reset instructions</p>
         </div>
 
         {/* Auth Glass Card */}
-        <div className="glass-panel p-8 rounded-3xl border border-white/10 shadow-2xl space-y-6">
+        <div className="glass-panel p-8 rounded-3xl border border-white/10 space-y-6">
           {errorMsg && (
-            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-3">
+            <div className="p-4 rounded-xl bg-error/10 border border-error/20 text-error/300 text-sm flex items-center gap-3">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+            <div className="p-4 rounded-xl bg-success/10 border border-success/20 text-success/300 text-sm flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-success/400" />
               <span>{successMsg}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1">Registered Email</label>
+              <label className="block text-xs font-semibold text-foreground-muted mb-2">Registered Email</label>
               <div className="relative">
-                <Mail className="w-5 h-5 text-gray-500 absolute left-3.5 top-3" />
-                <input
+                <Mail className="w-5 h-5 text-foreground-muted/50 absolute left-3 top-3" />
+                <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="creator@kidsai.studio"
-                  className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500"
                   required
+                  className="w-full pl-10 pr-4"
                 />
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="md"
               disabled={isSubmitting}
-              className="w-full py-3 rounded-xl gradient-button text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+              className="w-full"
             >
               {isSubmitting ? (
                 <>
@@ -88,13 +117,12 @@ export default function ForgotPasswordPage() {
               ) : (
                 <span>Send Reset Link</span>
               )}
-            </button>
+            </Button>
           </form>
 
           <div className="pt-2 text-center">
-            <Link href="/login" className="inline-flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Login</span>
+            <Link href="/login" className="inline-flex items-center gap-2 text-xs text-foreground-muted hover:text-primary/600 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back to Login
             </Link>
           </div>
         </div>
