@@ -281,7 +281,7 @@ export default function DashboardPage() {
             <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-3 gap-6" : "space-y-3"}>
               {projects.map((project) => (
                 <ProjectCard key={project.id} project={project} onRefresh={fetchProjects} viewMode={viewMode} />
-              ))}
+              )))
             </div>
           )}
 
