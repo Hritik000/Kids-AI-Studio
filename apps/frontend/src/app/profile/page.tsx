@@ -6,6 +6,10 @@ import { Navbar } from '@/components/layout/Navbar';
 import { User, Mail, Shield, Calendar, LogOut, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'An unexpected error occurred';
+};
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, logout, updateProfile } = useAuth();
@@ -38,8 +42,8 @@ export default function ProfilePage() {
     try {
       await updateProfile(fullName);
       setSuccessMsg('Profile updated successfully!');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to update profile.');
+    } catch (error: unknown) {
+      setErrorMsg(getErrorMessage(error));
     } finally {
       setIsSaving(false);
     }

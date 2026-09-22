@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { updateProjectApi, UpdateProjectPayload, Project } from '@/lib/api';
 
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'An unexpected error occurred';
+};
+
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function useAutoSave(
@@ -34,8 +38,8 @@ export function useAutoSave(
         await updateProjectApi(projectId, payload);
         setSaveStatus('saved');
         setLastSaved(new Date());
-      } catch (err) {
-        console.error("Auto-save error:", err);
+      } catch (error: unknown) {
+        console.error("Auto-save error:", getErrorMessage(error));
         setSaveStatus('error');
       }
     }, debounceMs);

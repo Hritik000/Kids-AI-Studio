@@ -15,7 +15,6 @@ import {
   Star,
   FolderKanban,
   FileText,
-  CheckCircle2,
   Clock,
   Sparkles,
   Archive,
@@ -34,7 +33,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [pagination, setPagination] = useState<PaginatedProjects | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState<string>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'all' | 'drafts' | 'favorites' | 'completed'>('all');
   const [sortOption, setSortOption] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -136,14 +135,12 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="glass-panel p-5 rounded-2xl border border-white/10 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-accent-pink/10 border border-accent-pink/20 text-accent-pink/400">
-                <Star className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-foreground-muted block font-medium">Favorites</span>
-                <span className="text-2xl font-bold text-foreground-primary">{favoriteCount}</span>
-              </div>
+            <div className="glass-panel p-5 rounded-2xl border border-accent-pink/10 border border-accent-pink/20 text-accent-pink/400">
+              <Star className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-foreground-muted block font-medium">Favorites</span>
+              <span className="text-2xl font-bold text-foreground-primary">{favoriteCount}</span>
             </div>
           </div>
 
@@ -158,7 +155,7 @@ export default function DashboardPage() {
                 className={`
                   ${activeTab === 'all'
                     ? 'bg-primary/20 text-primary/300 border-primary/40'
-                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-primary'}
+                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-positive'}
                 `}
               >
                 All Projects ({totalCount})
@@ -170,7 +167,7 @@ export default function DashboardPage() {
                 className={`
                   ${activeTab === 'drafts'
                     ? 'bg-primary/20 text-primary/300 border-primary/40'
-                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-primary'}
+                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-positive'}
                 `}
               >
                 Drafts ({draftCount})
@@ -182,7 +179,7 @@ export default function DashboardPage() {
                 className={`
                   ${activeTab === 'favorites'
                     ? 'bg-primary/20 text-primary/300 border-primary/40'
-                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-primary'}
+                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-positive'}
                 `}
               >
                 Favorites ({favoriteCount})
@@ -194,7 +191,7 @@ export default function DashboardPage() {
                 className={`
                   ${activeTab === 'completed'
                     ? 'bg-primary/20 text-primary/300 border-primary/40'
-                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-primary'}
+                    : 'bg-surface-secondary/5 text-foreground-muted border-white/10 hover:text-foreground-positive'}
                 `}
               >
                 Completed ({completedCount})
@@ -255,12 +252,15 @@ export default function DashboardPage() {
           </div>
 
           {/* Project Grid / List Display */}
-          {isLoading ? (
+{isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="glass-panel h-64 rounded-2xl border border-white/10 animate-pulse bg-surface-secondary/5" />
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="glass-panel h-64 rounded-2xl border border-white/10 animate-pulse bg-surface-secondary/5"
+                />
               ))}
-            )
+            </div>
           ) : projects.length === 0 ? (
             <div className="glass-panel p-12 rounded-3xl border border-white/10 text-center space-y-4 max-w-md mx-auto">
               <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 text-primary/400 flex items-center justify-center mx-auto">
@@ -276,12 +276,19 @@ export default function DashboardPage() {
               >
                 <Plus className="w-4 h-4" /> Create Video Project
               </Link>
-            </div>
+            )
           ) : (
-            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-3 gap-6" : "space-y-3"}>
+            <div
+              className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-3 gap-6" : "space-y-3"}
+            >
               {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} onRefresh={fetchProjects} viewMode={viewMode} />
-              )))
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onRefresh={fetchProjects}
+                  viewMode={viewMode}
+                />
+              ))}
             </div>
           )}
 

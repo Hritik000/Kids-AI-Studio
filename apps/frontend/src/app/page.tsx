@@ -7,6 +7,10 @@ import { SceneTimeline } from '@/components/studio/SceneTimeline';
 import { createProject, getProject, Project } from '@/lib/api';
 import { Sparkles, Video, Play, CheckCircle2, Zap, AlertCircle } from 'lucide-react';
 
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'An unexpected error occurred';
+};
+
 export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
@@ -32,18 +36,18 @@ export default function Home() {
               setErrorMsg('Project pipeline generation failed. Please check backend logs.');
             }
           }
-        } catch (err: any) {
-          console.error("Polling error:", err);
+        } catch (error: unknown) {
+          console.error("Polling error:", error);
           clearInterval(pollInterval);
           setIsGenerating(false);
-          setErrorMsg(err.message || "Failed to poll project status");
+          setErrorMsg(getErrorMessage(error));
         }
       }, 1000);
 
-    } catch (err: any) {
-      console.error("Project creation failed:", err);
+    } catch (error: unknown) {
+      console.error("Project creation failed:", error);
       setIsGenerating(false);
-      setErrorMsg(err.message || "Project initialization failed");
+      setErrorMsg(getErrorMessage(error));
     }
   };
 

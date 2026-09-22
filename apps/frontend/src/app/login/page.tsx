@@ -8,6 +8,10 @@ import { Sparkles, ArrowRight, Lock, Mail, AlertCircle, CheckCircle2 } from 'luc
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'An unexpected error occurred';
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
@@ -55,14 +59,11 @@ export default function LoginPage() {
     try {
       await login(email, password, rememberMe);
       router.push('/dashboard');
-    } catch (err: any) {
-      // Handle specific error messages from API
-      if (err.response?.data?.message) {
-        setErrorMsg(err.response.data.message);
-      } else if (err.message) {
-        setErrorMsg(err.message);
+    } catch (error: unknown) {
+      if (error.response?.data?.message) {
+        setErrorMsg(error.response.data.message);
       } else {
-        setErrorMsg('Invalid credentials. Please try again.');
+        setErrorMsg(getErrorMessage(error) || 'Invalid credentials. Please try again.');
       }
     } finally {
       setIsSubmitting(false);

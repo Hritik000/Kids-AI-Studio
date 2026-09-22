@@ -31,12 +31,15 @@ import {
   Check,
   Plus,
   Trash2,
-  Copy,
   Sparkles,
   Zap,
   Globe,
   ArrowLeft
 } from 'lucide-react';
+
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'An unexpected error occurred';
+};
 
 export default function SaaSManagementPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -54,14 +57,26 @@ export default function SaaSManagementPage() {
   const loadSaaSData = async () => {
     setIsLoading(true);
     try {
-      try { const p = await listSubscriptionPlansApi(); setPlans(p); } catch (err) {}
-      try { const sub = await getUserSubscriptionApi(); setSubscription(sub); } catch (err) {}
-      try { const ws = await listWorkspacesApi(); setWorkspaces(ws); } catch (err) {}
-      try { const keys = await listApiKeysApi(); setApiKeys(keys); } catch (err) {}
-      try { const summary = await getAnalyticsSummaryApi(); setAnalytics(summary); } catch (err) {}
-      try { const notes = await listNotificationsApi(); setNotifications(notes); } catch (err) {}
-    } catch (err) {
-      console.error("Error loading SaaS data:", err);
+      try { const p = await listSubscriptionPlansApi(); setPlans(p); } catch (error: unknown) {
+        console.warn('Failed to load subscription plans', error);
+      }
+      try { const sub = await getUserSubscriptionApi(); setSubscription(sub); } catch (error: unknown) {
+        console.warn('Failed to get user subscription', error);
+      }
+      try { const ws = await listWorkspacesApi(); setWorkspaces(ws); } catch (error: unknown) {
+        console.warn('Failed to list workspaces', error);
+      }
+      try { const keys = await listApiKeysApi(); setApiKeys(keys); } catch (error: unknown) {
+        console.warn('Failed to list API keys', error);
+      }
+      try { const summary = await getAnalyticsSummaryApi(); setAnalytics(summary); } catch (error: unknown) {
+        console.warn('Failed to get analytics summary', error);
+      }
+      try { const notes = await listNotificationsApi(); setNotifications(notes); } catch (error: unknown) {
+        console.warn('Failed to load notifications', error);
+      }
+    } catch (error: unknown) {
+      console.error("Error loading SaaS data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +90,8 @@ export default function SaaSManagementPage() {
     try {
       const updatedSub = await subscribeToPlanApi(planId);
       setSubscription(updatedSub);
-    } catch (err: any) {
-      alert(err.message || 'Subscription upgrade failed');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error) || 'Subscription upgrade failed');
     }
   };
 
@@ -87,7 +102,9 @@ export default function SaaSManagementPage() {
       setNewKeyName('');
       const keys = await listApiKeysApi();
       setApiKeys(keys);
-    } catch (err: any) {}
+    } catch (error: unknown) {
+      console.warn('Failed to create API key', error);
+    }
   };
 
   const handleRevokeApiKey = async (keyId: string) => {
@@ -95,7 +112,9 @@ export default function SaaSManagementPage() {
       await revokeApiKeyApi(keyId);
       const keys = await listApiKeysApi();
       setApiKeys(keys);
-    } catch (err: any) {}
+    } catch (error: unknown) {
+      console.warn('Failed to revoke API key', error);
+    }
   };
 
   const handleCreateWorkspace = async () => {
@@ -105,7 +124,9 @@ export default function SaaSManagementPage() {
       setNewWsName('');
       const ws = await listWorkspacesApi();
       setWorkspaces(ws);
-    } catch (err: any) {}
+    } catch (error: unknown) {
+      console.warn('Failed to create workspace', error);
+    }
   };
 
   return (

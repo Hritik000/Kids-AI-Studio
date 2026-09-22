@@ -1,0 +1,4 @@
+<ProjectCard key={project.id} project={project} onRefresh={fetchProjects} viewMode={viewMode} />
+              ))
+            </div>
+          )

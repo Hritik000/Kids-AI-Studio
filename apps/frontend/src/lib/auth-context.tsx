@@ -3,6 +3,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, getMeApi, loginApi, registerApi, updateProfileApi } from '@/lib/api';
 
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'An unexpected error occurred';
+};
+
 interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
@@ -27,7 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(savedToken);
       getMeApi(savedToken)
         .then((profile) => setUser(profile))
-        .catch(() => {
+        .catch((error: unknown) => {
+          console.error("Session recovery failed:", getErrorMessage(error));
           localStorage.removeItem('kidsai_auth_token');
           setToken(null);
           setUser(null);
@@ -47,6 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== 'undefined') {
         localStorage.setItem('kidsai_auth_token', res.token);
       }
+    } catch (error: unknown) {
+      console.error("Login failed:", getErrorMessage(error));
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== 'undefined') {
         localStorage.setItem('kidsai_auth_token', res.token);
       }
+    } catch (error: unknown) {
+      console.error("Registration failed:", getErrorMessage(error));
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateProfile = async (fullName: string, avatarUrl?: string) => {
-    const updated = await updateProfileApi(fullName, avatarUrl);
-    setUser(updated);
+    try {
+      const updated = await updateProfileApi(fullName, avatarUrl);
+      setUser(updated);
+    } catch (error: unknown) {
+      console.error("Profile update failed:", getErrorMessage(error));
+      throw error;
+    }
   };
 
   return (

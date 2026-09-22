@@ -7,6 +7,10 @@ import { ProjectCard } from '@/components/studio/ProjectCard';
 import { listProjectsApi, Project } from '@/lib/api';
 import { Archive, ArrowLeft, RotateCcw, FolderKanban } from 'lucide-react';
 
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'An unexpected error occurred';
+};
+
 export default function ArchivedProjectsPage() {
   const [archivedProjects, setArchivedProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,8 +20,8 @@ export default function ArchivedProjectsPage() {
     try {
       const data = await listProjectsApi({ is_archived: true, limit: 50 });
       setArchivedProjects(data.items);
-    } catch (err) {
-      console.error("Error fetching archived projects:", err);
+    } catch (error: unknown) {
+      console.error("Error fetching archived projects:", getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }

@@ -129,6 +129,10 @@ export default function ProjectDetailsPage() {
     1200
   );
 
+  function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'An unexpected error occurred';
+  }
+
   const loadData = async () => {
     if (!projectId) return;
     setIsLoading(true);
@@ -142,24 +146,24 @@ export default function ProjectDetailsPage() {
       setVideoStyle(proj.video_style);
       setIsFavorite(proj.favorite);
 
-      try { const plan = await getProductionPlanApi(projectId); setProductionPlan(plan); } catch (err) {}
-      try { const story = await getStoryScriptApi(projectId); setStoryScript(story); } catch (err) {}
-      try { const sb = await getStoryboardApi(projectId); setStoryboard(sb); } catch (err) {}
-      try { const chars = await getCharactersApi(projectId); setCharacters(chars); } catch (err) {}
-      try { const imgs = await listSceneImagesApi(projectId); setSceneImages(imgs); } catch (err) {}
-      try { const anims = await listSceneAnimationsApi(projectId); setAnimations(anims); } catch (err) {}
-      try { const voiceClips = await listSceneVoicesApi(projectId); setAudios(voiceClips); } catch (err) {}
-      try { const mixes = await listSceneMusicMixesApi(projectId); setMusicMixes(mixes); } catch (err) {}
-      try { const tl = await getProjectTimelineApi(projectId); setTimeline(tl); } catch (err) {}
-      try { const rnds = await listProjectRendersApi(projectId); setRenders(rnds); } catch (err) {}
-      try { const pub = await getPublishingAssetsApi(projectId); setPublishingBundle(pub); } catch (err) {}
-      try { const accs = await listConnectedAccountsApi(); setAccounts(accs); if (accs.length > 0) setSelectedAccountId(accs[0].account_id); } catch (err) {}
-      try { const q = await listPublishingQueueApi(projectId); setPublishingQueue(q); } catch (err) {}
-      try { const tr = await listTrendsCopilotApi(); setTrends(tr); } catch (err) {}
-      try { const rep = await analyzeProjectCopilotApi(projectId); setCopilotReport(rep); } catch (err) {}
-      try { const pred = await predictPerformanceCopilotApi(projectId); setCopilotPrediction(pred); } catch (err) {}
-    } catch (err) {
-      console.error("Error fetching project data:", err);
+      try { const plan = await getProductionPlanApi(projectId); setProductionPlan(plan); } catch {}
+      try { const story = await getStoryScriptApi(projectId); setStoryScript(story); } catch {}
+      try { const sb = await getStoryboardApi(projectId); setStoryboard(sb); } catch {}
+      try { const chars = await getCharactersApi(projectId); setCharacters(chars); } catch {}
+      try { const imgs = await listSceneImagesApi(projectId); setSceneImages(imgs); } catch {}
+      try { const anims = await listSceneAnimationsApi(projectId); setAnimations(anims); } catch {}
+      try { const voiceClips = await listSceneVoicesApi(projectId); setAudios(voiceClips); } catch {}
+      try { const mixes = await listSceneMusicMixesApi(projectId); setMusicMixes(mixes); } catch {}
+      try { const tl = await getProjectTimelineApi(projectId); setTimeline(tl); } catch {}
+      try { const rnds = await listProjectRendersApi(projectId); setRenders(rnds); } catch {}
+      try { const pub = await getPublishingAssetsApi(projectId); setPublishingBundle(pub); } catch {}
+      try { const accs = await listConnectedAccountsApi(); setAccounts(accs); if (accs.length > 0) setSelectedAccountId(accs[0].account_id); } catch {}
+      try { const q = await listPublishingQueueApi(projectId); setPublishingQueue(q); } catch {}
+      try { const tr = await listTrendsCopilotApi(); setTrends(tr); } catch {}
+      try { const rep = await analyzeProjectCopilotApi(projectId); setCopilotReport(rep); } catch {}
+      try { const pred = await predictPerformanceCopilotApi(projectId); setCopilotPrediction(pred); } catch {}
+    } catch (error: unknown) {
+      console.error("Error fetching project data:", getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -270,7 +274,7 @@ export default function ProjectDetailsPage() {
                       <span className="text-warning/400 font-medium flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full bg-warning/400 animate-ping" /> Auto-saving...
                       </span>
-                    </span>
+                    )}
                     {saveStatus === 'saved' && (
                       <span className="text-success/400 font-medium flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Saved
