@@ -130,9 +130,9 @@ app.include_router(audio_router, prefix=f"{settings.API_V1_STR}/audio", tags=["a
 app.include_router(music_router, prefix=f"{settings.API_V1_STR}/music", tags=["music"])
 app.include_router(rendering_router, prefix=f"{settings.API_V1_STR}/rendering", tags=["rendering"])
 app.include_router(publishing_router, prefix=f"{settings.API_V1_STR}/publishing", tags=["publishing"])
-app.include_router(distribution_router, prefix=f"{settings.API_V1_STR}/distribution", tags=["distribution"])
-app.include_router(saas_router, prefix=f"{settings.API_V1_STR}/saas", tags=["saas"])
-app.include_router(copilot_router, prefix=f"{settings.API_V1_STR}/copilot", tags=["copilot"])
+app.include_router(distribution_router, prefix=settings.API_V1_STR, tags=["distribution"])
+app.include_router(saas_router, prefix=settings.API_V1_STR, tags=["saas"])
+app.include_router(copilot_router, prefix=settings.API_V1_STR, tags=["copilot"])
 
 @app.get("/health")
 def health_check():

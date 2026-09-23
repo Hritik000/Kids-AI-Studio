@@ -31,9 +31,6 @@ import {
   Check,
   Plus,
   Trash2,
-  Sparkles,
-  Zap,
-  Globe,
   ArrowLeft
 } from 'lucide-react';
 
@@ -50,12 +47,10 @@ export default function SaaSManagementPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const [activeTab, setActiveTab] = useState<'billing' | 'workspaces' | 'apikeys' | 'analytics' | 'notifications'>('billing');
-  const [isLoading, setIsLoading] = useState(true);
   const [newKeyName, setNewKeyName] = useState('');
   const [newWsName, setNewWsName] = useState('');
 
   const loadSaaSData = async () => {
-    setIsLoading(true);
     try {
       try { const p = await listSubscriptionPlansApi(); setPlans(p); } catch (error: unknown) {
         console.warn('Failed to load subscription plans', error);
@@ -77,8 +72,6 @@ export default function SaaSManagementPage() {
       }
     } catch (error: unknown) {
       console.error("Error loading SaaS data:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 

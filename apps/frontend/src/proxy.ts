@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 const PROTECTED_PREFIXES = ['/dashboard', '/projects', '/settings', '/profile', '/assets', '/characters'];
 const GUEST_ONLY_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const authToken = request.cookies.get('kidsai_auth_token')?.value;
 

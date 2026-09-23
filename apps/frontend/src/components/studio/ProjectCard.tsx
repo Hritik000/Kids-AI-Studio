@@ -15,6 +15,7 @@ interface ProjectCardProps {
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onRefresh, viewMode = 'grid' }) => {
   const [isFavorite, setIsFavorite] = useState(project.favorite);
   const [showMenu, setShowMenu] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -135,14 +136,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onRefresh, vi
                 <Link href={`/projects/${project.id}`} className="block px-4 py-2 hover:bg-surface-secondary/10 flex items-center gap-2">
                   <ExternalLink className="w-3.5 h-3.5" /> Open Details
                 </Link>
-                <Button variant="outline" size="sm" onClick={handleDuplicate} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
+                <Button variant="outline" size="sm" onClick={handleDuplicate} disabled={isProcessing} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
                   <Copy className="w-3.5 h-3.5" /> Duplicate
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleArchive} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
+                <Button variant="outline" size="sm" onClick={handleArchive} disabled={isProcessing} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
                   {project.archived ? <><RotateCcw className="w-3.5 h-3.5" /> Restore</> : <><Archive className="w-3.5 h-3.5" /> Archive</>}
                 </Button>
                 <div className="border-t border-white/10 my-1" />
-                <Button variant="outline" size="sm" onClick={handleDelete} className="w-full text-left px-4 py-2 hover:bg-error/20 text-error">
+                <Button variant="outline" size="sm" onClick={handleDelete} disabled={isProcessing} className="w-full text-left px-4 py-2 hover:bg-error/20 text-error">
                   <Trash2 className="w-3.5 h-3.5" /> Delete
                 </Button>
               </div>
@@ -203,14 +204,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onRefresh, vi
               <Link href={`/projects/${project.id}`} className="block px-4 py-2 hover:bg-surface-secondary/10 flex items-center gap-2">
                 <ExternalLink className="w-3.5 h-3.5" /> View Details
               </Link>
-              <Button variant="outline" size="sm" onClick={handleDuplicate} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
+              <Button variant="outline" size="sm" onClick={handleDuplicate} disabled={isProcessing} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
                 <Copy className="w-3.5 h-3.5" /> Duplicate
               </Button>
-              <Button variant="outline" size="sm" onClick={handleArchive} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
+              <Button variant="outline" size="sm" onClick={handleArchive} disabled={isProcessing} className="w-full text-left px-4 py-2 hover:bg-surface-secondary/10">
                 {project.archived ? <><RotateCcw className="w-3.5 h-3.5" /> Restore</> : <><Archive className="w-3.5 h-3.5" /> Archive</>}
               </Button>
               <div className="border-t border-white/10 my-1" />
-              <Button variant="outline" size="sm" onClick={handleDelete} className="w-full text-left px-4 py-2 hover:bg-error/20 text-error">
+              <Button variant="outline" size="sm" onClick={handleDelete} disabled={isProcessing} className="w-full text-left px-4 py-2 hover:bg-error/20 text-error">
                 <Trash2 className="w-3.5 h-3.5" /> Delete
               </Button>
             </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   variant?: 'default' | 'outline' | 'filled';
   size?: 'sm' | 'md' | 'lg';
   className?: string;

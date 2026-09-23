@@ -60,11 +60,7 @@ export default function LoginPage() {
       await login(email, password, rememberMe);
       router.push('/dashboard');
     } catch (error: unknown) {
-      if (error.response?.data?.message) {
-        setErrorMsg(error.response.data.message);
-      } else {
-        setErrorMsg(getErrorMessage(error) || 'Invalid credentials. Please try again.');
-      }
+      setErrorMsg(getErrorMessage(error) || 'Invalid credentials. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
