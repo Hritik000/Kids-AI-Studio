@@ -29,31 +29,35 @@ import pytest
 from unittest.mock import patch, MagicMock
 from app.core.config import settings
 from app.core.animation_provider import (
-    get_animation_provider, Wan2AnimationProvider, MockAnimationProvider,
+    get_animation_provider, Wan2AnimationProvider, MockAnimationProvider, LocalSVDProvider,
     AnimationConfigurationError, AnimationInputError, AnimationAuthError,
     AnimationRateLimitError, AnimationTimeoutError, AnimationAPIError, mask_secret
 )
 
 
 def test_provider_selection(monkeypatch):
-    """1. Test factory provider selection for mock, wan, and auto modes."""
-    # Explicit mock mode
+    """1. Test environment precedence and explicit provider selection."""
+    # Environment selection must take precedence over settings in tests/CI.
     monkeypatch.setenv("ANIMATION_PROVIDER", "mock")
-    prov_mock = get_animation_provider("mock")
+    prov_mock = get_animation_provider()
     assert isinstance(prov_mock, MockAnimationProvider)
+
+    # An explicit provider argument has the highest precedence.
+    monkeypatch.setenv("ANIMATION_PROVIDER", "wan")
+    assert isinstance(get_animation_provider("mock"), MockAnimationProvider)
 
     # Explicit wan mode
     monkeypatch.setenv("ANIMATION_PROVIDER", "wan")
     prov_wan = get_animation_provider("wan")
     assert isinstance(prov_wan, Wan2AnimationProvider)
 
-    # Auto mode without key -> MockAnimationProvider
+    # Auto mode without key -> local SVD provider
     monkeypatch.setenv("ANIMATION_PROVIDER", "auto")
     monkeypatch.delenv("REPLICATE_API_KEY", raising=False)
     monkeypatch.delenv("WAN_API_KEY", raising=False)
     monkeypatch.setattr(settings, "REPLICATE_API_KEY", "")
-    prov_auto_mock = get_animation_provider("auto")
-    assert isinstance(prov_auto_mock, MockAnimationProvider)
+    prov_auto_local = get_animation_provider("auto")
+    assert isinstance(prov_auto_local, LocalSVDProvider)
 
     # Auto mode with Replicate key -> Wan2AnimationProvider
     monkeypatch.setenv("REPLICATE_API_KEY", "r8_testkey123456789")
@@ -86,7 +90,8 @@ async def test_mock_provider_response():
     res = await provider.generate_animation_clip("https://example.com/source.png", "Rexy jumps happily", duration_seconds=5.0)
     assert res["provider"] == "Wan2.1-i2v-Mock"
     assert res["duration_seconds"] == 5.0
-    assert "gtv-videos-bucket" in res["storage_url"] or "mp4" in res["storage_url"]
+    assert os.path.isfile(res["storage_url"])
+    assert res["storage_url"].endswith(".png")
 
 
 @pytest.mark.anyio

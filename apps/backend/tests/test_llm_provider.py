@@ -22,7 +22,7 @@ import httpx
 from unittest.mock import patch, MagicMock
 from app.core.config import settings
 from app.core.llm import (
-    get_llm_provider, OpenAILLMProvider, MockLLMProvider,
+    get_llm_provider, OpenAILLMProvider, MockLLMProvider, MLXLLMProvider,
     LLMConfigurationError, LLMAuthError, LLMRateLimitError,
     LLMTimeoutError, LLMAPIError, LLMJSONParseError,
     extract_json_payload, mask_secret
@@ -30,11 +30,15 @@ from app.core.llm import (
 
 
 def test_provider_selection(monkeypatch):
-    """1. Test factory provider selection for mock, gemini, openai, kimi, and auto modes."""
-    # Test explicit mock mode
+    """1. Test environment precedence and explicit provider selection."""
+    # Environment selection must take precedence over settings in tests/CI.
     monkeypatch.setenv("LLM_PROVIDER", "mock")
-    provider = get_llm_provider("mock")
+    provider = get_llm_provider()
     assert isinstance(provider, MockLLMProvider)
+
+    # An explicit provider argument has the highest precedence.
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    assert isinstance(get_llm_provider("mock"), MockLLMProvider)
 
     # Test explicit gemini mode
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
@@ -53,7 +57,7 @@ def test_provider_selection(monkeypatch):
     assert isinstance(provider_kimi, OpenAILLMProvider)
     assert "moonshot.cn" in provider_kimi.base_url
 
-    # Test auto mode without keys -> MockLLMProvider
+    # Test auto mode without hosted keys -> local MLX provider
     monkeypatch.setenv("LLM_PROVIDER", "auto")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -62,8 +66,8 @@ def test_provider_selection(monkeypatch):
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
     monkeypatch.setattr(settings, "OPENAI_API_KEY", "")
     monkeypatch.setattr(settings, "KIMI_API_KEY", "")
-    provider_auto_mock = get_llm_provider("auto")
-    assert isinstance(provider_auto_mock, MockLLMProvider)
+    provider_auto_local = get_llm_provider("auto")
+    assert isinstance(provider_auto_local, MLXLLMProvider)
 
     # Test auto mode with Gemini key -> OpenAILLMProvider (Gemini default)
     monkeypatch.setenv("GEMINI_API_KEY", "AIzaSyAutoKey123")

@@ -369,7 +369,7 @@ def get_voice_provider(provider_type: Optional[str] = None) -> VoiceProvider:
     - 'kokoro': KokoroTTSProvider (zero-cost local TTS)
     - 'auto' / None: Auto-detects key. If ELEVENLABS_API_KEY present, returns ElevenLabsVoiceProvider; else KokoroTTSProvider.
     """
-    mode = (provider_type or getattr(settings, "VOICE_PROVIDER", "auto") or os.getenv("VOICE_PROVIDER") or "auto").lower()
+    mode = (provider_type or os.getenv("VOICE_PROVIDER") or getattr(settings, "VOICE_PROVIDER", "auto") or "auto").lower()
 
     if mode == "mock":
         return MockVoiceProvider()

@@ -19,6 +19,9 @@ from app.core.config import settings
 from app.core.image_provider import FluxImageProvider, mask_secret
 
 
+pytestmark = pytest.mark.integration
+
+
 @pytest.mark.anyio
 async def test_real_image_provider_manual_execution():
     """Manual integration test against live Replicate FLUX API endpoint."""
@@ -30,12 +33,7 @@ async def test_real_image_provider_manual_execution():
     )
 
     if not api_key:
-        pytest.fail(
-            "MANUAL REPLICATE IMAGE TEST SKIPPED / FAILED: REPLICATE_API_KEY is missing.\n"
-            "To run this manual integration test against live Replicate API:\n"
-            "  1. Obtain an API key at https://replicate.com/account/api-tokens\n"
-            "  2. Run: REPLICATE_API_KEY=r8_... IMAGE_PROVIDER=flux PYTHONPATH=. ./.venv/bin/pytest tests/test_real_image_manual.py\n"
-        )
+        pytest.skip("REPLICATE_API_KEY is not configured")
 
     model = getattr(settings, "IMAGE_MODEL", "black-forest-labs/flux-schnell") or "black-forest-labs/flux-schnell"
 

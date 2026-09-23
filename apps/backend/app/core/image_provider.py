@@ -360,7 +360,7 @@ def get_image_provider(provider_type: Optional[str] = None) -> ImageProvider:
     - 'pollinations': PollinationsImageProvider (free unlimited)
     - 'auto' / None: Auto-detects key. If REPLICATE_API_KEY present, returns FluxImageProvider; else PollinationsImageProvider.
     """
-    mode = (provider_type or getattr(settings, "IMAGE_PROVIDER", "auto") or os.getenv("IMAGE_PROVIDER") or "auto").lower()
+    mode = (provider_type or os.getenv("IMAGE_PROVIDER") or getattr(settings, "IMAGE_PROVIDER", "auto") or "auto").lower()
 
     if mode == "mock":
         return MockImageProvider()

@@ -7,7 +7,6 @@ local persistent asset storage, and secret masking.
 
 import os
 import time
-import urllib.parse
 import asyncio
 import logging
 from abc import ABC, abstractmethod
@@ -17,6 +16,7 @@ from app.core.config import settings
 from pathlib import Path
 import hashlib
 import io
+from app.core.mock_media import create_mock_png
 
 logger = logging.getLogger("animation_provider")
 
@@ -105,10 +105,16 @@ class MockAnimationProvider(AnimationProvider):
         seed: int = 42,
         project_id: str = "default_project"
     ) -> Dict[str, Any]:
-        short_prompt = motion_prompt[:40].replace(" ", "+")
-        encoded = urllib.parse.quote(short_prompt)
-        video_url = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-        thumb_url = f"https://placehold.co/400x225/1A1D27/FFFFFF/png?text=Animated+{encoded}"
+        motion_hash = hashlib.sha256(
+            f"{motion_prompt}_{width}_{height}_{seed}".encode("utf-8")
+        ).hexdigest()[:16]
+        animation_asset = create_mock_png(
+            project_id=project_id,
+            asset_name=f"asset_mock_animation_{motion_hash}.png",
+            width=width,
+            height=height,
+            color=(30, 144, 255),
+        )
 
         return {
             "provider": "Wan2.1-i2v-Mock",
@@ -116,8 +122,8 @@ class MockAnimationProvider(AnimationProvider):
             "duration_seconds": duration_seconds,
             "width": width,
             "height": height,
-            "storage_url": video_url,
-            "thumbnail_url": image_url or thumb_url
+            "storage_url": animation_asset,
+            "thumbnail_url": animation_asset
         }
 
 
@@ -530,7 +536,7 @@ def get_animation_provider(provider_type: Optional[str] = None) -> AnimationProv
     - 'local_svd': LocalSVDProvider (zero cost, local)
     - 'auto' / None: Auto-detects key. If REPLICATE_API_KEY present, returns Wan2AnimationProvider; else LocalSVDProvider.
     """
-    mode = (provider_type or getattr(settings, "ANIMATION_PROVIDER", "auto") or os.getenv("ANIMATION_PROVIDER") or "auto").lower()
+    mode = (provider_type or os.getenv("ANIMATION_PROVIDER") or getattr(settings, "ANIMATION_PROVIDER", "auto") or "auto").lower()
 
     if mode == "mock":
         return MockAnimationProvider()

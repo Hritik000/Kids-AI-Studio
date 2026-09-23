@@ -31,32 +31,36 @@ import httpx
 from unittest.mock import patch, MagicMock
 from app.core.config import settings
 from app.core.voice_provider import (
-    get_voice_provider, ElevenLabsVoiceProvider, MockVoiceProvider,
+    get_voice_provider, ElevenLabsVoiceProvider, MockVoiceProvider, KokoroTTSProvider,
     VoiceConfigurationError, VoiceInputError, VoiceAuthError,
     VoiceRateLimitError, VoiceTimeoutError, VoiceAPIError, mask_secret
 )
 
 
 def test_provider_selection(monkeypatch):
-    """1. Test factory provider selection for mock, elevenlabs, and auto modes."""
-    # Explicit mock mode
+    """1. Test environment precedence and explicit provider selection."""
+    # Environment selection must take precedence over settings in tests/CI.
     monkeypatch.setenv("VOICE_PROVIDER", "mock")
-    prov_mock = get_voice_provider("mock")
+    prov_mock = get_voice_provider()
     assert isinstance(prov_mock, MockVoiceProvider)
+
+    # An explicit provider argument has the highest precedence.
+    monkeypatch.setenv("VOICE_PROVIDER", "elevenlabs")
+    assert isinstance(get_voice_provider("mock"), MockVoiceProvider)
 
     # Explicit elevenlabs mode
     monkeypatch.setenv("VOICE_PROVIDER", "elevenlabs")
     prov_eleven = get_voice_provider("elevenlabs")
     assert isinstance(prov_eleven, ElevenLabsVoiceProvider)
 
-    # Auto mode without key -> MockVoiceProvider
+    # Auto mode without key -> local Kokoro provider
     monkeypatch.setenv("VOICE_PROVIDER", "auto")
     monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     monkeypatch.delenv("XI_API_KEY", raising=False)
     monkeypatch.delenv("TTS_API_KEY", raising=False)
     monkeypatch.setattr(settings, "ELEVENLABS_API_KEY", "")
-    prov_auto_mock = get_voice_provider("auto")
-    assert isinstance(prov_auto_mock, MockVoiceProvider)
+    prov_auto_local = get_voice_provider("auto")
+    assert isinstance(prov_auto_local, KokoroTTSProvider)
 
     # Auto mode with key -> ElevenLabsVoiceProvider
     monkeypatch.setenv("ELEVENLABS_API_KEY", "xi_testkey123456789")

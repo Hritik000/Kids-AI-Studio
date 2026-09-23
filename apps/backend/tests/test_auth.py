@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from main import app
+from app.core.config import settings
 
 client = TestClient(app)
 
@@ -26,6 +27,8 @@ def test_auth_flow():
     assert me_data["success"] is True
     assert me_data["data"]["email"] == "testuser@kidsai.studio"
 
-def test_unauthorized_access():
+def test_unauthorized_access(monkeypatch):
+    """Unauthenticated access must be rejected when auth enforcement is enabled."""
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
     response = client.get("/api/v1/auth/me")
     assert response.status_code == 401

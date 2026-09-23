@@ -21,6 +21,9 @@ from app.core.music_provider import StableAudioProvider, mask_secret
 from app.services.rendering.ffmpeg import FFmpegEngine
 
 
+pytestmark = pytest.mark.integration
+
+
 @pytest.mark.anyio
 async def test_real_music_provider_manual_execution():
     """Manual integration test against live Stability AI Stable Audio REST API endpoint."""
@@ -32,13 +35,7 @@ async def test_real_music_provider_manual_execution():
     )
 
     if not api_key:
-        pytest.fail(
-            "MANUAL STABLE AUDIO TEST SKIPPED / FAILED: STABLE_AUDIO_API_KEY is missing.\n"
-            "To run this manual integration test against live Stability AI API:\n"
-            "  1. Obtain an API key at https://platform.stability.ai\n"
-            "  2. Run: STABLE_AUDIO_API_KEY=sk-... MUSIC_PROVIDER=stable_audio PYTHONPATH=. ./.venv/bin/pytest tests/test_real_music_manual.py\n"
-            "NOTE: This test calls live Stability AI audio generation which may consume API credits."
-        )
+        pytest.skip("STABLE_AUDIO_API_KEY or STABILITY_API_KEY is not configured")
 
     model = getattr(settings, "MUSIC_MODEL", "stable-audio") or "stable-audio"
 

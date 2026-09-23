@@ -802,7 +802,7 @@ def get_llm_provider(provider_type: Optional[str] = None) -> LLMProvider:
     - 'local_mlx': MLXLLMProvider (local Phi-3-mini via MLX-LM, zero cost)
     - 'auto' / None: Auto-detects key in order: Gemini -> OpenAI -> Kimi -> Local MLX -> Mock.
     """
-    mode = (provider_type or getattr(settings, "LLM_PROVIDER", "auto") or os.getenv("LLM_PROVIDER") or "auto").lower()
+    mode = (provider_type or os.getenv("LLM_PROVIDER") or getattr(settings, "LLM_PROVIDER", "auto") or "auto").lower()
 
     if mode == "mock":
         return MockLLMProvider()

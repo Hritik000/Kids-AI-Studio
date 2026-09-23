@@ -29,31 +29,35 @@ import pytest
 from unittest.mock import patch, MagicMock
 from app.core.config import settings
 from app.core.image_provider import (
-    get_image_provider, FluxImageProvider, MockImageProvider,
+    get_image_provider, FluxImageProvider, MockImageProvider, PollinationsImageProvider,
     ImageConfigurationError, ImageAuthError, ImageRateLimitError,
     ImageTimeoutError, ImageAPIError, mask_secret
 )
 
 
 def test_provider_selection(monkeypatch):
-    """1. Test factory provider selection for mock, flux, and auto modes."""
-    # Explicit mock mode
+    """1. Test environment precedence and explicit provider selection."""
+    # Environment selection must take precedence over settings in tests/CI.
     monkeypatch.setenv("IMAGE_PROVIDER", "mock")
-    prov_mock = get_image_provider("mock")
+    prov_mock = get_image_provider()
     assert isinstance(prov_mock, MockImageProvider)
+
+    # An explicit provider argument has the highest precedence.
+    monkeypatch.setenv("IMAGE_PROVIDER", "flux")
+    assert isinstance(get_image_provider("mock"), MockImageProvider)
 
     # Explicit flux mode
     monkeypatch.setenv("IMAGE_PROVIDER", "flux")
     prov_flux = get_image_provider("flux")
     assert isinstance(prov_flux, FluxImageProvider)
 
-    # Auto mode without key -> MockImageProvider
+    # Auto mode without key -> free Pollinations provider
     monkeypatch.setenv("IMAGE_PROVIDER", "auto")
     monkeypatch.delenv("REPLICATE_API_KEY", raising=False)
     monkeypatch.delenv("FLUX_API_KEY", raising=False)
     monkeypatch.setattr(settings, "REPLICATE_API_KEY", "")
-    prov_auto_mock = get_image_provider("auto")
-    assert isinstance(prov_auto_mock, MockImageProvider)
+    prov_auto_free = get_image_provider("auto")
+    assert isinstance(prov_auto_free, PollinationsImageProvider)
 
     # Auto mode with Replicate key -> FluxImageProvider
     monkeypatch.setenv("REPLICATE_API_KEY", "r8_testkey123456789")

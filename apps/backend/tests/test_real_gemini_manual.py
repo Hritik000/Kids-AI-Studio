@@ -19,6 +19,9 @@ from app.services.director import DirectorAgentService
 from app.services.story import StoryAgentService
 
 
+pytestmark = pytest.mark.integration
+
+
 @pytest.mark.anyio
 async def test_real_gemini_provider_manual_execution():
     """Manual integration test against live Google Gemini API endpoint."""
@@ -28,12 +31,7 @@ async def test_real_gemini_provider_manual_execution():
     )
 
     if not api_key:
-        pytest.fail(
-            "MANUAL GEMINI TEST SKIPPED / FAILED: GEMINI_API_KEY is missing.\n"
-            "To run this manual integration test against Google Gemini API (Free Tier):\n"
-            "  1. Obtain a free API key at https://aistudio.google.com\n"
-            "  2. Run: GEMINI_API_KEY=AIzaSy... LLM_PROVIDER=gemini PYTHONPATH=. ./.venv/bin/pytest tests/test_real_gemini_manual.py\n"
-        )
+        pytest.skip("GEMINI_API_KEY is not configured")
 
     base_url = getattr(settings, "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai") or "https://generativelanguage.googleapis.com/v1beta/openai"
     model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash") or "gemini-2.5-flash"

@@ -11,6 +11,7 @@ STRESS_PROMPT = "Create a 2 minute story about a brave astronaut dinosaur."
 # PHASE C: PRODUCTION STRESS & STABILITY SUITE
 # ==============================================================================
 
+@pytest.mark.integration
 def test_stress_batch_10_generations():
     """Verify stability & memory footprint across 10 consecutive full pipeline generations."""
     t0 = time.time()
@@ -34,6 +35,7 @@ def test_stress_batch_10_generations():
     print(f"\n[STRESS TEST 10] 10/10 Runs Succeeded in {total_time}s (Avg per run: {avg_latency}s)")
     assert successful_runs == 10
 
+@pytest.mark.integration
 def test_stress_batch_25_generations():
     """Verify stability across 25 consecutive pipeline generations."""
     t0 = time.time()
@@ -55,6 +57,7 @@ def test_stress_batch_25_generations():
     print(f"\n[STRESS TEST 25] 25/25 Runs Succeeded in {total_time}s")
     assert successful_runs == 25
 
+@pytest.mark.integration
 def test_stress_batch_50_generations():
     """Verify stability across 50 consecutive pipeline generations."""
     t0 = time.time()
@@ -76,6 +79,7 @@ def test_stress_batch_50_generations():
     print(f"\n[STRESS TEST 50] 50/50 Runs Succeeded in {total_time}s")
     assert successful_runs == 50
 
+@pytest.mark.integration
 def test_stress_batch_100_generations():
     """Verify stability across 100 consecutive pipeline generations."""
     t0 = time.time()

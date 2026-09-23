@@ -2,6 +2,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 from main import app
+from app.core.config import settings
 
 client = TestClient(app)
 
@@ -15,8 +16,9 @@ ADMIN_HEADERS = {"Authorization": f"Bearer {ADMIN_TOKEN}"}
 # 1. AUTHENTICATION & SECURITY TESTS
 # ==============================================================================
 
-def test_missing_auth_header():
+def test_missing_auth_header(monkeypatch):
     """Verify that unauthenticated requests to protected endpoints return 401 Unauthorized."""
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
     res = client.get("/api/v1/projects")
     assert res.status_code == 401
     assert "token missing" in res.json().get("detail", "").lower()

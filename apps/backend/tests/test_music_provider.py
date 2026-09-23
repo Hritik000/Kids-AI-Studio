@@ -33,7 +33,7 @@ import httpx
 from unittest.mock import patch, MagicMock
 from app.core.config import settings
 from app.core.music_provider import (
-    get_music_provider, StableAudioProvider, MockMusicProvider,
+    get_music_provider, StableAudioProvider, MockMusicProvider, HuggingFaceMusicGenProvider,
     MusicConfigurationError, MusicInputError, MusicAuthError,
     MusicRateLimitError, MusicTimeoutError, MusicAPIError, mask_secret
 )
@@ -41,25 +41,29 @@ from app.services.music_service import MusicPipelineService
 
 
 def test_provider_selection(monkeypatch):
-    """1. Test factory provider selection for mock, stable_audio, and auto modes."""
-    # Explicit mock mode
+    """1. Test environment precedence and explicit provider selection."""
+    # Environment selection must take precedence over settings in tests/CI.
     monkeypatch.setenv("MUSIC_PROVIDER", "mock")
-    prov_mock = get_music_provider("mock")
+    prov_mock = get_music_provider()
     assert isinstance(prov_mock, MockMusicProvider)
+
+    # An explicit provider argument has the highest precedence.
+    monkeypatch.setenv("MUSIC_PROVIDER", "stable_audio")
+    assert isinstance(get_music_provider("mock"), MockMusicProvider)
 
     # Explicit stable_audio mode
     monkeypatch.setenv("MUSIC_PROVIDER", "stable_audio")
     prov_stable = get_music_provider("stable_audio")
     assert isinstance(prov_stable, StableAudioProvider)
 
-    # Auto mode without key -> MockMusicProvider
+    # Auto mode without key -> free Hugging Face provider
     monkeypatch.setenv("MUSIC_PROVIDER", "auto")
     monkeypatch.delenv("STABLE_AUDIO_API_KEY", raising=False)
     monkeypatch.delenv("STABILITY_API_KEY", raising=False)
     monkeypatch.setattr(settings, "STABLE_AUDIO_API_KEY", "")
     monkeypatch.setattr(settings, "STABILITY_API_KEY", "")
-    prov_auto_mock = get_music_provider("auto")
-    assert isinstance(prov_auto_mock, MockMusicProvider)
+    prov_auto_free = get_music_provider("auto")
+    assert isinstance(prov_auto_free, HuggingFaceMusicGenProvider)
 
     # Auto mode with key -> StableAudioProvider
     monkeypatch.setenv("STABLE_AUDIO_API_KEY", "sk_testkey123456789")

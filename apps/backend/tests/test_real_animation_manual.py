@@ -21,6 +21,9 @@ from app.core.animation_provider import Wan2AnimationProvider, mask_secret
 from app.services.rendering.ffmpeg import FFmpegEngine
 
 
+pytestmark = pytest.mark.integration
+
+
 @pytest.mark.anyio
 async def test_real_animation_provider_manual_execution():
     """Manual integration test against live Replicate Wan 2.1 API endpoint."""
@@ -31,13 +34,7 @@ async def test_real_animation_provider_manual_execution():
     )
 
     if not api_key:
-        pytest.fail(
-            "MANUAL REPLICATE ANIMATION TEST SKIPPED / FAILED: REPLICATE_API_KEY is missing.\n"
-            "To run this manual integration test against live Replicate API (Wan 2.1 model):\n"
-            "  1. Obtain an API key at https://replicate.com/account/api-tokens\n"
-            "  2. Run: REPLICATE_API_KEY=r8_... ANIMATION_PROVIDER=wan PYTHONPATH=. ./.venv/bin/pytest tests/test_real_animation_manual.py\n"
-            "NOTE: This test calls live Replicate video inference which may consume API credits."
-        )
+        pytest.skip("REPLICATE_API_KEY is not configured")
 
     model = getattr(settings, "ANIMATION_MODEL", "wan-video/wan-2.1-1.3b") or "wan-video/wan-2.1-1.3b"
 

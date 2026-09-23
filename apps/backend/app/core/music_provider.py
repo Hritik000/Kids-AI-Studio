@@ -339,7 +339,7 @@ def get_music_provider(provider_type: Optional[str] = None) -> MusicProvider:
     - 'huggingface_musicgen': HuggingFaceMusicGenProvider (free inference API)
     - 'auto' / None: Auto-detects key. If STABLE_AUDIO_API_KEY/STABILITY_API_KEY present, returns StableAudioProvider; else HuggingFaceMusicGenProvider.
     """
-    mode = (provider_type or getattr(settings, "MUSIC_PROVIDER", "auto") or os.getenv("MUSIC_PROVIDER") or "auto").lower()
+    mode = (provider_type or os.getenv("MUSIC_PROVIDER") or getattr(settings, "MUSIC_PROVIDER", "auto") or "auto").lower()
 
     if mode == "mock":
         return MockMusicProvider()

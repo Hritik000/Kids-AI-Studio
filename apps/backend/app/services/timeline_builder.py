@@ -1,6 +1,7 @@
 import uuid
 from typing import Dict, Any, List, Optional
 from app.models.rendering import VideoTimeline, TimelineSceneItem, SubtitlePlaceholder
+from app.core.mock_media import create_mock_png
 
 class TimelineBuilderService:
     @staticmethod
@@ -22,7 +23,17 @@ class TimelineBuilderService:
 
             # Match animation clip
             anim_match = next((a for a in animations if a.get("scene_number") == scene_num), None)
-            anim_url = anim_match.get("storage_url") if anim_match else "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"
+            if anim_match:
+                anim_url = anim_match.get("storage_url")
+            else:
+                width, height = (640, 360) if aspect_ratio == "16:9" else (360, 640)
+                anim_url = create_mock_png(
+                    project_id=project_id,
+                    asset_name=f"asset_timeline_placeholder_scene_{scene_num}.png",
+                    width=width,
+                    height=height,
+                    color=(26, 29, 39),
+                )
 
             # Match voice narration clip
             voice_match = next((v for v in voices if v.get("scene_number") == scene_num), None)

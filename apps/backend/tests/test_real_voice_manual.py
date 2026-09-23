@@ -21,6 +21,9 @@ from app.core.voice_provider import ElevenLabsVoiceProvider, mask_secret
 from app.services.rendering.ffmpeg import FFmpegEngine
 
 
+pytestmark = pytest.mark.integration
+
+
 @pytest.mark.anyio
 async def test_real_voice_provider_manual_execution():
     """Manual integration test against live ElevenLabs TTS API endpoint."""
@@ -32,13 +35,7 @@ async def test_real_voice_provider_manual_execution():
     )
 
     if not api_key:
-        pytest.fail(
-            "MANUAL ELEVENLABS VOICE TEST SKIPPED / FAILED: ELEVENLABS_API_KEY is missing.\n"
-            "To run this manual integration test against live ElevenLabs API:\n"
-            "  1. Obtain an API key at https://elevenlabs.io\n"
-            "  2. Run: ELEVENLABS_API_KEY=xi_... VOICE_PROVIDER=elevenlabs PYTHONPATH=. ./.venv/bin/pytest tests/test_real_voice_manual.py\n"
-            "NOTE: This test calls live ElevenLabs text-to-speech inference which may consume API credits."
-        )
+        pytest.skip("ELEVENLABS_API_KEY is not configured")
 
     voice_id = getattr(settings, "ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM") or "21m00Tcm4TlvDq8ikWAM"
     model = getattr(settings, "ELEVENLABS_MODEL", "eleven_multilingual_v2") or "eleven_multilingual_v2"

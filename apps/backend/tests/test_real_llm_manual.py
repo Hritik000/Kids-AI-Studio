@@ -19,6 +19,9 @@ from app.services.director import DirectorAgentService
 from app.services.story import StoryAgentService
 
 
+pytestmark = pytest.mark.integration
+
+
 @pytest.mark.anyio
 async def test_real_llm_provider_manual_execution():
     """Manual integration test against live LLM API endpoint."""
@@ -31,12 +34,7 @@ async def test_real_llm_provider_manual_execution():
     )
 
     if not api_key:
-        pytest.fail(
-            "MANUAL TEST SKIPPED / FAILED: Real LLM API key missing.\n"
-            "To run this manual integration test, supply a real API key:\n"
-            "  OPENAI_API_KEY=sk-... PYTHONPATH=. ./.venv/bin/pytest tests/test_real_llm_manual.py\n"
-            "or set KIMI_API_KEY=..."
-        )
+        pytest.skip("A live OpenAI or Kimi API key is not configured")
 
     base_url = (
         "https://api.moonshot.cn/v1" if os.getenv("KIMI_API_KEY") or getattr(settings, "KIMI_API_KEY", "")
