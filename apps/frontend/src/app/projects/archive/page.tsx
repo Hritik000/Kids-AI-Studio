@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { ProjectCard } from '@/components/studio/ProjectCard';
 import { listProjectsApi, Project } from '@/lib/api';
-import { Archive, ArrowLeft, RotateCcw, FolderKanban } from 'lucide-react';
+import { Archive, ArrowLeft } from 'lucide-react';
 
 const getErrorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -28,7 +28,9 @@ export default function ArchivedProjectsPage() {
   };
 
   useEffect(() => {
-    fetchArchived();
+    const id = setTimeout(fetchArchived, 0);
+    return () => clearTimeout(id);
+     
   }, []);
 
   return (

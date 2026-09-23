@@ -11,17 +11,13 @@ import {
   Search,
   Grid,
   List,
-  Filter,
   Star,
   FolderKanban,
   FileText,
-  Clock,
-  Sparkles,
-  Archive,
   ChevronLeft,
   ChevronRight,
-  Sliders,
-  CheckSquare
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,7 +60,9 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchProjects();
+    const id = setTimeout(fetchProjects, 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, activeTab, sortOption, currentPage]);
 
   const totalCount = pagination?.total || projects.length;
@@ -276,7 +274,7 @@ export default function DashboardPage() {
               >
                 <Plus className="w-4 h-4" /> Create Video Project
               </Link>
-            )
+            </div>
           ) : (
             <div
               className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-3 gap-6" : "space-y-3"}

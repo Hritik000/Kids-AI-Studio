@@ -20,16 +20,19 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const getInitialToken = () =>
+    typeof window !== 'undefined' ? localStorage.getItem('kidsai_auth_token') : null;
+
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(getInitialToken);
+  // Only start in a loading state if there's a token to validate; otherwise
+  // there's nothing to fetch and we can render immediately.
+  const [isLoading, setIsLoading] = useState<boolean>(() => !!getInitialToken());
 
   useEffect(() => {
-    // Session Recovery on Mount
-    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('kidsai_auth_token') : null;
-    if (savedToken) {
-      setToken(savedToken);
-      getMeApi(savedToken)
+    // Session Recovery on Mount: token (if any) is already set via lazy initial state above.
+    if (token) {
+      getMeApi(token)
         .then((profile) => setUser(profile))
         .catch((error: unknown) => {
           console.error("Session recovery failed:", getErrorMessage(error));
@@ -38,9 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
         })
         .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Sparkles, Video, Clapperboard, ShieldCheck, Moon, Sun } from 'lucide-react';
+import { Sparkles, ShieldCheck, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { Button } from '@/components/ui/button';
 

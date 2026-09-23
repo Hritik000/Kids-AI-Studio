@@ -5,16 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createProjectApi } from '@/lib/api';
 import {
-  Wand2,
   ArrowRight,
   ArrowLeft,
   Sparkles,
-  Palette,
   Volume2,
-  Globe,
-  Clock,
-  Film,
-  CheckCircle2,
   Save,
   AlertCircle
 } from 'lucide-react';
@@ -72,8 +66,9 @@ export default function CreateProjectWizardPage() {
         save_as_draft: true
       });
       router.push(`/projects/${project.id}`);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save project draft.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save project draft.';
+      setErrorMsg(message);
       setIsSubmitting(false);
     }
   };

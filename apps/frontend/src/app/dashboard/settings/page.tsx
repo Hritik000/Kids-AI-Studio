@@ -83,7 +83,8 @@ export default function SaaSManagementPage() {
   };
 
   useEffect(() => {
-    loadSaaSData();
+    const id = setTimeout(loadSaaSData, 0);
+    return () => clearTimeout(id);
   }, []);
 
   const handleSubscribe = async (planId: string) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Sparkles, Rocket, Palette, Volume2, Wand2, Compass } from 'lucide-react';
+import { Rocket, Palette, Volume2, Wand2, Compass } from 'lucide-react';
 
 interface PromptGeneratorProps {
   onGenerate: (prompt: string, ageGroup: string, aspectRatio: string) => void;

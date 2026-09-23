@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.models.publishing import SEOPackage, TitleOption, ChapterItem
 from app.core.llm import PromptLoader
 

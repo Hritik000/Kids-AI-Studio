@@ -1,9 +1,8 @@
 "use client";
 
 import React from 'react';
-import { Project, Scene, ProjectStatus } from '@/lib/api';
-import { Sparkles, Film, Image as ImageIcon, Volume2, CheckCircle2, Clock, PlayCircle, Activity } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Project, ProjectStatus } from '@/lib/api';
+import { Sparkles, Film, Image as ImageIcon, Volume2, CheckCircle2, Clock, PlayCircle } from 'lucide-react';
 
 interface SceneTimelineProps {
   project: Project;
@@ -150,7 +149,7 @@ export const SceneTimeline: React.FC<SceneTimelineProps> = ({ project }) => {
                       Narration Script
                     </h4>
                     <p className="text-sm font-medium text-foreground-secondary bg-surface-secondary/5 p-3 rounded-xl border border-white/5 italic">
-                      "{scene.narration_text}"
+                      &quot;{scene.narration_text}&quot;
                     </p>
                   </div>
 

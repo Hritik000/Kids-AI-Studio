@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { PromptGenerator } from '@/components/studio/PromptGenerator';
 import { SceneTimeline } from '@/components/studio/SceneTimeline';
 import { createProject, getProject, Project } from '@/lib/api';
-import { Sparkles, Video, Play, CheckCircle2, Zap, AlertCircle } from 'lucide-react';
+import { Zap, AlertCircle } from 'lucide-react';
 
 const getErrorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : 'An unexpected error occurred';

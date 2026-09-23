@@ -98,13 +98,6 @@ class TimelineEngine:
                 music_path = p
                 break
 
-        narration_path = None
-        for n_ext in ["narration.wav", "narration.mp3", "voice.mp3", "voice.wav"]:
-            p = os.path.join(project_dir, n_ext)
-            if os.path.exists(p):
-                narration_path = p
-                break
-
         scenes: List[SceneInput] = []
 
         if not raw_scenes:

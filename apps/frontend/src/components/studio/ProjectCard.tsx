@@ -15,7 +15,6 @@ interface ProjectCardProps {
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onRefresh, viewMode = 'grid' }) => {
   const [isFavorite, setIsFavorite] = useState(project.favorite);
   const [showMenu, setShowMenu] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -24,7 +23,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onRefresh, vi
       setIsFavorite(!isFavorite);
       await toggleFavoriteApi(project.id);
       if (onRefresh) onRefresh();
-    } catch (err) {
+    } catch {
       setIsFavorite(isFavorite);
     }
   };

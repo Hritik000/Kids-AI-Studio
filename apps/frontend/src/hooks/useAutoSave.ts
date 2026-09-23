@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { updateProjectApi, UpdateProjectPayload, Project } from '@/lib/api';
+import { updateProjectApi, UpdateProjectPayload } from '@/lib/api';
 
 const getErrorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -27,11 +27,13 @@ export function useAutoSave(
 
     if (!projectId) return;
 
-    setSaveStatus('saving');
-
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+
+    // Flip to 'saving' on the next tick rather than synchronously in the
+    // effect body, then run the actual debounced save.
+    const savingTimeout = setTimeout(() => setSaveStatus('saving'), 0);
 
     timeoutRef.current = setTimeout(async () => {
       try {
@@ -45,10 +47,12 @@ export function useAutoSave(
     }, debounceMs);
 
     return () => {
+      clearTimeout(savingTimeout);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, JSON.stringify(payload), debounceMs]);
 
   return { saveStatus, lastSaved };

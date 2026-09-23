@@ -272,7 +272,6 @@ class HuggingFaceMusicGenProvider(MusicProvider):
         bpm: int = 110,
         project_id: str = "default_project"
     ) -> Dict[str, Any]:
-        import aiohttp
         import hashlib
         from pathlib import Path
 
@@ -305,31 +304,26 @@ class HuggingFaceMusicGenProvider(MusicProvider):
             headers["Authorization"] = f"Bearer {api_key}"
 
         # Make request to HF API
-        timeout = aiohttp.ClientTimeout(total=60)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.post(
-                API_URL,
-                json=payload,
-                headers=headers
-            ) as resp:
-                if resp.status == 200:
-                    audio_data = await resp.read()
-                    local_path.write_bytes(audio_data)
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(API_URL, json=payload, headers=headers)
+            if resp.status_code == 200:
+                audio_data = resp.content
+                local_path.write_bytes(audio_data)
 
-                    # Basic validation
-                    if local_path.stat().st_size < 1000:  # Less than 1KB is suspicious
-                        local_path.unlink(missing_ok=True)
-                        raise MusicAPIError("Received audio file is too small - likely empty")
+                # Basic validation
+                if local_path.stat().st_size < 1000:  # Less than 1KB is suspicious
+                    local_path.unlink(missing_ok=True)
+                    raise MusicAPIError("Received audio file is too small - likely empty")
 
-                    return {
-                        "provider": "HuggingFace-MusicGen",
-                        "sample_rate": 24000,  # MusicGen default
-                        "audio_format": "WAV",
-                        "storage_url": str(local_path)
-                    }
-                else:
-                    error_text = await resp.text()
-                    raise MusicAPIError(f"HF MusicGen API error: {resp.status} - {error_text}")
+                return {
+                    "provider": "HuggingFace-MusicGen",
+                    "sample_rate": 24000,  # MusicGen default
+                    "audio_format": "WAV",
+                    "storage_url": str(local_path)
+                }
+            else:
+                error_text = resp.text
+                raise MusicAPIError(f"HF MusicGen API error: {resp.status_code} - {error_text}")
 
 
 # Backward-compatible alias

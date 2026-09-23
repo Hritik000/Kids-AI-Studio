@@ -596,7 +596,7 @@ export interface ContentTemplateItem {
   category: string;
   description: string;
   tags: string[];
-  payload: any;
+  payload: Record<string, unknown>;
   downloads_count: number;
   created_at: string;
 }
@@ -663,7 +663,7 @@ export interface APIResponse<T> {
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: Record<string, unknown>;
   };
 }
 
@@ -1347,11 +1347,11 @@ export async function rejectRenderApi(projectId: string, renderId: string): Prom
   return true;
 }
 
-export async function exportProjectPackageApi(projectId: string): Promise<any> {
+export async function exportProjectPackageApi(projectId: string): Promise<Record<string, unknown>> {
   const response = await fetch(`${API_BASE}/projects/${projectId}/render/export`, {
     headers: getAuthHeaders(),
   });
-  const res: APIResponse<any> = await response.json();
+  const res: APIResponse<Record<string, unknown>> = await response.json();
   if (!response.ok || !res.success || !res.data) {
     throw new Error(res.error?.message || 'Failed to export project package');
   }

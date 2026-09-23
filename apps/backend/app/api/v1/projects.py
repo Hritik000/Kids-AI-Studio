@@ -88,7 +88,7 @@ async def create_project(
 @router.get("", response_model=APIResponse[PaginatedProjects])
 async def list_projects(
     q: Optional[str] = Query(None, description="Search query by title or prompt"),
-    status: Optional[ProjectStatus] = Query(None, description="Filter by project status"),
+    project_status: Optional[ProjectStatus] = Query(None, alias="status", description="Filter by project status"),
     is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
     is_archived: Optional[bool] = Query(False, description="Filter archived projects"),
     sort: str = Query("newest", description="Sort by: newest, oldest, title, recently_opened"),
@@ -108,8 +108,8 @@ async def list_projects(
         user_projects = [p for p in user_projects if p.favorite == is_favorite]
         
     # Filter by status enum
-    if status is not None:
-        user_projects = [p for p in user_projects if p.status == status]
+    if project_status is not None:
+        user_projects = [p for p in user_projects if p.status == project_status]
 
     # Search query matching title or prompt
     if q and q.strip():

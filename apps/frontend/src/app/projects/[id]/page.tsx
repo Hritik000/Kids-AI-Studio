@@ -25,13 +25,9 @@ import {
   getPublishingAssetsApi,
   listConnectedAccountsApi,
   listPublishingQueueApi,
-  publishNowApi,
-  schedulePublishApi,
-  retryPublishTaskApi,
   analyzeProjectCopilotApi,
   predictPerformanceCopilotApi,
   listTrendsCopilotApi,
-  optimizePromptCopilotApi,
   Project,
   ProductionPlan,
   StoryScript,
@@ -61,26 +57,16 @@ import {
   Clock,
   Code,
   AlertCircle,
-  Check,
-  X,
-  ImageIcon,
-  Send,
-  Calendar,
-  ExternalLink,
   Bot,
   TrendingUp,
   Award,
   Sparkles,
-  Zap,
   Target,
   ShieldCheck,
-  Layers,
-  Wand2,
-  Globe
+  Wand2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Container } from '@/components/layout/container';
 
 export default function ProjectDetailsPage() {
@@ -104,7 +90,6 @@ export default function ProjectDetailsPage() {
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [publishingQueue, setPublishingQueue] = useState<PublishingQueueItem[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
-  const [scheduleDate, setScheduleDate] = useState<string>('');
 
   const [copilotReport, setCopilotReport] = useState<OptimizationReport | null>(null);
   const [copilotPrediction, setCopilotPrediction] = useState<PerformancePrediction | null>(null);
@@ -170,7 +155,9 @@ export default function ProjectDetailsPage() {
   };
 
   useEffect(() => {
-    loadData();
+    const id = setTimeout(loadData, 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const handleFavoriteToggle = async () => {
@@ -212,8 +199,8 @@ export default function ProjectDetailsPage() {
       setCopilotReport(rep);
       setCopilotPrediction(pred);
       setActiveTab('copilot');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Copilot audit failed.');
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err));
     } finally {
       setIsAnalyzingCopilot(false);
     }

@@ -11,7 +11,7 @@ import tempfile
 import logging
 from typing import List, Optional
 from app.services.rendering.models import (
-    RenderJobInput, RenderTaskResult, SceneInput, CameraDirection, TransitionType
+    RenderJobInput, RenderTaskResult, SceneInput, CameraDirection, TransitionType, SubtitleItem
 )
 from app.services.rendering.config import rendering_settings
 from app.services.rendering.ffmpeg import FFmpegEngine, FFmpegExecutionError

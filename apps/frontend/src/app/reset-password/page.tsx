@@ -94,12 +94,13 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/login');
       }, 1500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle specific error messages from API
-      if (err.response?.data?.message) {
-        setErrorMsg(err.response.data.message);
-      } else if (err.message) {
-        setErrorMsg(err.message);
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      if (e.response?.data?.message) {
+        setErrorMsg(e.response.data.message);
+      } else if (e.message) {
+        setErrorMsg(e.message);
       } else {
         setErrorMsg('Password reset failed. Please try again.');
       }

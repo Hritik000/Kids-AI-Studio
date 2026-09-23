@@ -70,4 +70,4 @@ class StoryboardResponse(BaseModel):
     title: str
     description: str
     tags: List[str]
-    scenes: List[Scene]
+    scenes: List[StoryboardScene]

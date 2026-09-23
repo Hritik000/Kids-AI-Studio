@@ -408,14 +408,12 @@ class LocalSVDProvider(AnimationProvider):
         # Load image from URL or local path
         if image_url.startswith("http://") or image_url.startswith("https://"):
             # Download image from URL
-            import aiohttp
-            timeout = aiohttp.ClientTimeout(total=30)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(image_url) as resp:
-                    if resp.status != 200:
-                        raise AnimationAPIError(f"Failed to download image from {image_url}: HTTP {resp.status}")
-                    image_data = await resp.read()
-                    image = Image.open(io.BytesIO(image_data)).convert("RGB")
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.get(image_url)
+                if resp.status_code != 200:
+                    raise AnimationAPIError(f"Failed to download image from {image_url}: HTTP {resp.status_code}")
+                image_data = resp.content
+                image = Image.open(io.BytesIO(image_data)).convert("RGB")
         else:
             # Load image from local path
             if not os.path.isfile(image_url):

@@ -307,7 +307,6 @@ class PollinationsImageProvider(ImageProvider):
         seed: int = 42,
         project_id: str = "default_project"
     ) -> Dict[str, Any]:
-        import aiohttp
         import hashlib
         from pathlib import Path
         import urllib.parse
@@ -326,33 +325,32 @@ class PollinationsImageProvider(ImageProvider):
         local_path = assets_dir / f"asset_{file_hash}.png"
 
         # Download image
-        timeout = aiohttp.ClientTimeout(total=30)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(image_url) as resp:
-                if resp.status == 200:
-                    image_data = await resp.read()
-                    local_path.write_bytes(image_data)
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(image_url)
+            if resp.status_code == 200:
+                image_data = resp.content
+                local_path.write_bytes(image_data)
 
-                    # Verify it's a valid image
-                    from PIL import Image
-                    try:
-                        with Image.open(local_path) as img:
-                            img.verify()  # Verify integrity
-                    except Exception:
-                        local_path.unlink(missing_ok=True)
-                        raise ImageAPIError("Downloaded file is not a valid image")
+                # Verify it's a valid image
+                from PIL import Image
+                try:
+                    with Image.open(local_path) as img:
+                        img.verify()  # Verify integrity
+                except Exception:
+                    local_path.unlink(missing_ok=True)
+                    raise ImageAPIError("Downloaded file is not a valid image")
 
-                    return {
-                        "provider": "Pollinations-AI",
-                        "seed": seed,
-                        "width": width,
-                        "height": height,
-                        "storage_url": str(local_path),
-                        "thumbnail_url": str(local_path)
-                    }
-                else:
-                    error_text = await resp.text()
-                    raise ImageAPIError(f"Pollinations API error: {resp.status} - {error_text}")
+                return {
+                    "provider": "Pollinations-AI",
+                    "seed": seed,
+                    "width": width,
+                    "height": height,
+                    "storage_url": str(local_path),
+                    "thumbnail_url": str(local_path)
+                }
+            else:
+                error_text = resp.text
+                raise ImageAPIError(f"Pollinations API error: {resp.status_code} - {error_text}")
 def get_image_provider(provider_type: Optional[str] = None) -> ImageProvider:
     """
     Factory function to retrieve configured ImageProvider instance.
